@@ -1961,7 +1961,7 @@ declare module "mongoose" {
    *
    *    - import * as Q from 'q';
    *      declare module 'mongoose' {
-   *        type Promise<T> = Promise<T>;
+   *        type Promise<T> = Q.promise<T>;
    *      }
    *
    *    - import * as Bluebird from 'bluebird';
