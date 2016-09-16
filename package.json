@@ -1,0 +1,28 @@
+{
+  "name": "mongodb-adaptor",
+  "version": "0.0.1",
+  "description": "A database adaptor for using MongoDB.",
+  "keywords": [],
+  "private": false,
+  "scripts": {
+    "postinstall": "typings install",
+    "reinstall": "rm -fr node_modules && npm install",
+    "clean": "rm -fr generated",
+    "build": "tsc -p .",
+    "test": "npm run build && NODE_PATH=.:generated/src/ts   mocha -R spec generated/test/ts/MongoDBFactory.tests.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "configure-local": "github:psnider/configure-local",
+    "mongoose": "^4.6.0",
+    "pino": "^2.10.1"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.0.2",
+    "tmp": "0.0.28",
+    "typescript": "^2.0.0"
+  },
+  "repository": {}
+}
