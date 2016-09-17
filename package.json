@@ -2,10 +2,11 @@
   "name": "mongodb-adaptor",
   "version": "0.0.1",
   "description": "A database adaptor for using MongoDB.",
+  "main": "generated/src/ts/MongoDBAdaptor.js",
   "keywords": [],
   "private": false,
   "scripts": {
-    "postinstall": "typings install",
+    "postinstall": "typings install && ln -s .. node_modules/MongoDBAdaptor",
     "reinstall": "rm -fr node_modules && npm install",
     "clean": "rm -fr generated",
     "build": "tsc -p .",
@@ -24,6 +25,9 @@
     "tmp": "0.0.28",
     "typescript": "^2.0.0"
   },
-  "repository": {},
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:psnider/MongoDBAdaptor.git"
+  },
   "typings": "./MongoDBAdaptor.d.ts"
 }

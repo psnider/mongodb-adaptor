@@ -11,8 +11,7 @@ import configure                        = require('configure-local')
 import DatabaseFactory                  = require('DatabaseFactory')
 import MongodMgr                        = require('mongod-mgr')
 import MongooseMgr                      = require('mongoose-mgr')
-import MongoDBAdaptor_mod               = require('MongoDBAdaptor')
-import MongoDBAdaptor                   = MongoDBAdaptor_mod.MongoDBAdaptor
+import {MongoDBAdaptor} from 'MongoDBAdaptor'
 
 
 process.on('uncaughtException', function(error) {

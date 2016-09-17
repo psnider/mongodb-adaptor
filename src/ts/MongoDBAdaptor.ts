@@ -5,7 +5,7 @@ import pino                             = require('pino')
 
 import configure                        = require('configure-local')
 import DatabaseFactory                  = require('DatabaseFactory')
-import {MongodbUpdateArgs} from 'MongoDBAdaptor'
+import {MongodbUpdateArgs} from '../../MongoDBAdaptor'
 
 
 var log = pino({name: 'MongoDBAdaptor'})
