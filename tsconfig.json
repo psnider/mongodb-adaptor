@@ -31,14 +31,20 @@
         "test/ts/*.ts",
         "typings/index.d.ts",
         "DatabaseFactory.d.ts",
-        "MongoDBFactory.d.ts"
+        "mongod-mgr.d.ts",
+        "mongoose-mgr.d.ts",
+        "MongoDBAdaptor.d.ts"
     ],
     "files": [
-        "src/ts/MongoDBFactory.ts",
-        "test/ts/MongoDBFactory.tests.ts",
+        "src/ts/mongod-mgr.ts",
+        "src/ts/mongoose-mgr.ts",
+        "src/ts/MongoDBAdaptor.ts",
+        "test/ts/MongoDBAdaptor.tests.ts",
         "typings/index.d.ts",
         "DatabaseFactory.d.ts",
-        "MongoDBFactory.d.ts"
+        "mongod-mgr.d.ts",
+        "mongoose-mgr.d.ts",
+        "MongoDBAdaptor.d.ts"
     ],
     "exclude": [],
     "atom": {

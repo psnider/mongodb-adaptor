@@ -9,10 +9,10 @@ import tmp                              = require('tmp');
 
 import configure                        = require('configure-local')
 import DatabaseFactory                  = require('DatabaseFactory');
-import MongoDBFactory_mod               = require('MongoDBFactory');
-import MongoDBFactory                   = MongoDBFactory_mod.MongoDBFactory;
-import MongoDBAdaptor                   = MongoDBFactory_mod.MongoDBAdaptor;
-
+import MongodMgr                        = require('mongod-mgr');
+import MongooseMgr                      = require('mongoose-mgr');
+import MongoDBAdaptor_mod               = require('MongoDBAdaptor');
+import MongoDBAdaptor                   = MongoDBAdaptor_mod.MongoDBAdaptor
 
 
 process.on('uncaughtException', function(error) {
@@ -79,7 +79,7 @@ export class PartsMongoDB extends MongoDBAdaptor {
 
 describe('deepEqualObjOrMongo', function() {
     
-    var deepEqualObjOrMongo = MongoDBFactory_mod.deepEqualObjOrMongo;
+    var deepEqualObjOrMongo = MongoDBAdaptor.deepEqualObjOrMongo;
     
 
     it('+ should compare null-equivalent values as equal', function() {
@@ -160,19 +160,19 @@ describe('MongoDBAdaptor', function() {
         tmp_dir = tmp.dirSync({unsafeCleanup: true});
         var db_path  = path.join(tmp_dir.name, 'data');
         var log_path = path.join(tmp_dir.name, 'log');
-        spawned_mongod = MongoDBFactory_mod.startMongod(PORT.toString(), db_path, log_path, function() {
+        spawned_mongod = MongodMgr.startMongod(PORT.toString(), db_path, log_path, function() {
             function onError(error : Error) : void {
                 SHOULD_DELETE_RAMDISK = false;
             }
             var mongo_path = 'localhost:27016/test';
-            MongoDBFactory_mod.connectViaMongoose(mongo_path, onError, done);
+            MongooseMgr.connectViaMongoose(mongo_path, onError, done);
         });
     });
 
 
     after(function(done) {
-        MongoDBFactory_mod.disconnectViaMongoose(function() {
-            MongoDBFactory_mod.stopMongod(spawned_mongod, function() {
+        MongooseMgr.disconnectViaMongoose(function() {
+            MongodMgr.stopMongod(spawned_mongod, function() {
                 tmp_dir.removeCallback();
                 done()
             });

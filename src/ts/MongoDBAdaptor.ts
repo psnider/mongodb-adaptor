@@ -1,5 +1,3 @@
-import child_process                    = require('child_process');
-import fs                               = require('fs');
 import mongoose                         = require('mongoose');
 // Use native promises
 mongoose.Promise = global.Promise;
@@ -7,159 +5,12 @@ import pino                             = require('pino');
 
 import configure                        = require('configure-local')
 import DatabaseFactory                  = require('DatabaseFactory');
-import {MongodbUpdateArgs} from 'MongoDBFactory'
+import {MongodbUpdateArgs} from 'MongoDBAdaptor'
 
 
-var log = pino({name: 'MongoDBFactory'})
+var log = pino({name: 'MongoDBAdaptor'})
 
 
-// NOTES:
-// objects returned by these functions should not contain MongoDB IDs
-
-
-function isEmpty(obj) {
-    return (Object.keys(obj).length === 0);
-}
-
-
-
-// Start up a mongod instance, and report completion via a callback.
-// This call is for use with mocha test before().
-// @param db_path The path to the data storage directory for this mongod instance.
-// @param log_path The path to the log file for this mongod instance. Set to null if not needed.
-export function startMongod(port : string, db_path : string, log_path : string, done : (error? : Error) => void) : child_process.ChildProcess {
-    var done_called = false;
-    function guardedDone(error? : Error) {
-        if (!done_called) {
-            done_called = true;
-            done(error);
-        }
-    }
-    fs.mkdirSync(db_path);
-    var args = ['--port', port, '--dbpath', db_path, '--smallfiles'];
-    if (log_path) {
-        args.concat(['--logpath', log_path]);
-    }
-    var options = {env: process.env};
-    // console.log(`starting mongod with args=${JSON.stringify(args)}`)
-    var spawned_mongod = child_process.spawn('mongod', args, options);
-    spawned_mongod.on('exit', function (code, signal) {
-        if (had_error) {
-            console.log('mongod exited with code=' + code + ' signal=' + signal);
-        }
-    });
-    var had_error = false;
-    spawned_mongod.on('error', function (error) {
-        had_error = true;
-        console.log('startMongod error=' + error)
-        guardedDone(error);
-    });
-    setTimeout(function() {
-        guardedDone();
-    }, 500);
-    return spawned_mongod;
-}
-
-
-
-
-// Stop a mongod instance, and report completion via a callback.
-// This call is for use with mocha test after().
-export function stopMongod(spawned_mongod : child_process.ChildProcess, done : (error? : Error) => void) {
-    spawned_mongod.kill();
-    // Give mongod a chance to shut down
-    // TODO: how can we have an event to show this?
-    setTimeout(() => {
-        done()
-    }, 50);
-}
-
-
-
-
-export function connectViaMongoose(mongo_path, onError : (error : Error) => void, done : (error? : Error) => void) : void {
-    var done_called = false;
-    function guardedDone(error? : Error) {
-        if (!done_called) {
-            done_called = true;
-            done(error);
-        }
-    }
-    var options = {
-      server: { socketOptions: { keepAlive: 1 } }
-    }
-    mongoose.connect(mongo_path, options);
-    // TODO: do we need to handle 'open' event?
-    mongoose.connection.on('connected', function () {
-        // console.log('mongoose connected, mongoose.connection.db.state=' + mongoose.connection.db.state);
-        guardedDone();
-    });
-    mongoose.connection.on('error', function (error) {
-        onError(error);
-        console.log('Mongoose default connection error: ' + error);
-    });
-    mongoose.connection.on('disconnected', function () {
-        // console.log('Mongoose default connection disconnected');
-    });
-    if (mongoose.connection.db['state'] == 'connected') {
-        // TODO: state may not be supported in mongo 3.2
-        guardedDone();
-    }
-}
-
-
-
-
-export function disconnectViaMongoose(done : (error? : Error) => void) : void {
-    mongoose.connection.close(function () {
-        // console.log('Mongoose disconnected');
-        done();
-    });
-}
-
-
-
-
-// considers null, empty array, and obj._id to all be undefined
-export function deepEqualObjOrMongo(lhs, rhs) : boolean {
-    function coerceType(value) {
-        if (typeof value === 'null') return undefined;
-        if (Array.isArray(value) && (value.length === 0)) return undefined;
-        return value;
-    }
-    lhs = coerceType(lhs);
-    rhs = coerceType(rhs);
-    if ((lhs == null) && (rhs == null)) {
-        return true;        
-    }
-    if ((lhs == null) || (rhs == null)) {
-        return false;
-    }
-    if (Array.isArray(lhs) && Array.isArray(rhs)) {
-        if (lhs.length !== rhs.length) {
-            return false;
-        } else {
-            return lhs.every((element, i) => {
-                return deepEqualObjOrMongo(element, rhs[i])
-            });
-        }
-    } else if ((lhs instanceof Date) && (rhs instanceof Date)) {
-        return (lhs.getTime() == rhs.getTime());
-    } else if ((typeof lhs === 'object') && (typeof rhs === 'object')) {
-        var lhs_keys = Object.keys(lhs);
-        var rhs_keys = Object.keys(rhs);
-        // check each key, because a missing key is equivalent to an empty value at an existing key
-        return lhs_keys.every((key) => {
-            if (key === '_id') {
-                return true;
-            } else {
-                return deepEqualObjOrMongo(lhs[key], rhs[key]);
-            }
-        });
-    } else {
-        return (lhs === rhs);
-    }
-}
 
 
 
@@ -167,6 +18,61 @@ export function deepEqualObjOrMongo(lhs, rhs) : boolean {
 // This adaptor converts application queries into Mongo queries
 // and the query results into application results, suitable for use by cscFramework
 export class MongoDBAdaptor implements DatabaseFactory.IDocumentDatabase {
+
+
+    static  createObjectId() : string {
+        var id = new mongoose.Types.ObjectId;
+        return id.toHexString();
+    }
+
+
+    static isEmpty(obj): boolean {
+        return (Object.keys(obj).length === 0);
+    }
+
+
+    // considers null, empty array, and obj._id to all be undefined
+    static  deepEqualObjOrMongo(lhs, rhs) : boolean {
+        function coerceType(value) {
+            if (typeof value === 'null') return undefined;
+            if (Array.isArray(value) && (value.length === 0)) return undefined;
+            return value;
+        }
+        lhs = coerceType(lhs);
+        rhs = coerceType(rhs);
+        if ((lhs == null) && (rhs == null)) {
+            return true;        
+        }
+        if ((lhs == null) || (rhs == null)) {
+            return false;
+        }
+        if (Array.isArray(lhs) && Array.isArray(rhs)) {
+            if (lhs.length !== rhs.length) {
+                return false;
+            } else {
+                return lhs.every((element, i) => {
+                    return MongoDBAdaptor.deepEqualObjOrMongo(element, rhs[i])
+                });
+            }
+        } else if ((lhs instanceof Date) && (rhs instanceof Date)) {
+            return (lhs.getTime() == rhs.getTime());
+        } else if ((typeof lhs === 'object') && (typeof rhs === 'object')) {
+            var lhs_keys = Object.keys(lhs);
+            var rhs_keys = Object.keys(rhs);
+            // check each key, because a missing key is equivalent to an empty value at an existing key
+            return lhs_keys.every((key) => {
+                if ((key === 'id') || (key === '_id')) {
+                    // ignore id fields
+                    return true;
+                } else {
+                    return MongoDBAdaptor.deepEqualObjOrMongo(lhs[key], rhs[key]);
+                }
+            });
+        } else {
+            return (lhs === rhs);
+        }
+    }
+
 
     private static CONVERT_COMMAND = {
 
@@ -469,43 +375,3 @@ export class MongoDBAdaptor implements DatabaseFactory.IDocumentDatabase {
 
 }
 
-
-export class MongoDBFactory implements DatabaseFactory.IDatabaseFactory {
-
-    private connection;
-
-    // The Config must already be set
-    constructor(done? : (db_factory : DatabaseFactory.IDatabaseFactory) => void) {
-        function onError(error) {
-            log.error({function: 'MongoDBFactory.constructor: connection error', error: error});
-        }        
-        var mongo_path = process.env.MONGOLAB_URI ||
-            process.env.MONGOHQ_URL ||
-            configure.get('MONGO_PATH');
-        connectViaMongoose(mongo_path, onError, (error) => {
-            if (error) throw error;
-            done(this);  
-        });   
-    }
-
-
-    disconnect(done? : () => void) {
-        disconnectViaMongoose(done);
-    }
-
-
-    createObjectId() : string {
-        var id = new mongoose.Types.ObjectId;
-        return id.toHexString();
-    }
-
-
-    create(typename : string) : DatabaseFactory.IDocumentDatabase {
-        switch (typename) {
-        default:
-            throw new Error('unsupported typename=' + typename);
-        }
-    }
-
-
-}

@@ -9,7 +9,7 @@
     "reinstall": "rm -fr node_modules && npm install",
     "clean": "rm -fr generated",
     "build": "tsc -p .",
-    "test": "npm run build && NODE_PATH=.:generated/src/ts   mocha -R spec generated/test/ts/MongoDBFactory.tests.js"
+    "test": "npm run build && NODE_PATH=.:generated/src/ts   mocha -R spec generated/test/ts/MongoDBAdaptor.tests.js"
   },
   "author": "",
   "license": "MIT",
@@ -25,5 +25,5 @@
     "typescript": "^2.0.0"
   },
   "repository": {},
-  "typings": "./MongoDBFactory.d.ts"
+  "typings": "./MongoDBAdaptor.d.ts"
 }
