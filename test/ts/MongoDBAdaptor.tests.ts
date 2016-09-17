@@ -1,40 +1,40 @@
-import chai                             = require('chai');
+import chai                             = require('chai')
 var expect                              = chai.expect
-import fs                               = require('fs');
-import child_process                    = require('child_process');
-import mongoose                         = require('mongoose');
-var ObjectId                            = mongoose.Schema.Types.ObjectId;
-import path                             = require('path');
-import tmp                              = require('tmp');
+import fs                               = require('fs')
+import child_process                    = require('child_process')
+import mongoose                         = require('mongoose')
+var ObjectId                            = mongoose.Schema.Types.ObjectId
+import path                             = require('path')
+import tmp                              = require('tmp')
 
 import configure                        = require('configure-local')
-import DatabaseFactory                  = require('DatabaseFactory');
-import MongodMgr                        = require('mongod-mgr');
-import MongooseMgr                      = require('mongoose-mgr');
-import MongoDBAdaptor_mod               = require('MongoDBAdaptor');
+import DatabaseFactory                  = require('DatabaseFactory')
+import MongodMgr                        = require('mongod-mgr')
+import MongooseMgr                      = require('mongoose-mgr')
+import MongoDBAdaptor_mod               = require('MongoDBAdaptor')
 import MongoDBAdaptor                   = MongoDBAdaptor_mod.MongoDBAdaptor
 
 
 process.on('uncaughtException', function(error) {
-  console.log('Found uncaughtException: ' + error);
-});
+  console.log('Found uncaughtException: ' + error)
+})
 
 
 function getOverTheNetworkObject(obj : any) : any {
-    return JSON.parse(JSON.stringify(obj));
+    return JSON.parse(JSON.stringify(obj))
 }
 
 
 
 interface ConvertMongodbUpdateArgsTest {
-    update_cmd:                 DatabaseFactory.IUpdateFieldCommand;
-    expected_mongo_query:       any;
-    expected_mongo_update:      any;
+    update_cmd:                 DatabaseFactory.IUpdateFieldCommand
+    expected_mongo_query:       any
+    expected_mongo_update:      any
 }
 
 
 interface ConvertMongodbUpdateArgsTests {
-    [name : string]: ConvertMongodbUpdateArgsTest;
+    [name : string]: ConvertMongodbUpdateArgsTest
 }
 
 
@@ -42,13 +42,13 @@ var DETAILS_SCHEMA_DEF = {
     quantity:           Number,
     style:              String,
     color:              String
-};
+}
 
 
 var COMPONENT_SCHEMA_DEF = {
     part_id:            ObjectId,  // The part ID in the database
     info:               DETAILS_SCHEMA_DEF
-};
+}
 
 
 var PART_SCHEMA_DEF = {
@@ -58,11 +58,11 @@ var PART_SCHEMA_DEF = {
     notes:              [String],
     details:            DETAILS_SCHEMA_DEF,
     components:         [COMPONENT_SCHEMA_DEF]
-};
+}
 
 
-var PART_SCHEMA = new mongoose.Schema(PART_SCHEMA_DEF);
-var PartModel = mongoose.model('Part', PART_SCHEMA);
+var PART_SCHEMA = new mongoose.Schema(PART_SCHEMA_DEF)
+var PartModel = mongoose.model('Part', PART_SCHEMA)
 
 
 
@@ -70,7 +70,7 @@ var PartModel = mongoose.model('Part', PART_SCHEMA);
 export class PartsMongoDB extends MongoDBAdaptor {
 
     constructor(done? : () => void) {
-        super('Part', PartModel, done);
+        super('Part', PartModel, done)
     }
 
 }
@@ -79,113 +79,113 @@ export class PartsMongoDB extends MongoDBAdaptor {
 
 describe('deepEqualObjOrMongo', function() {
     
-    var deepEqualObjOrMongo = MongoDBAdaptor.deepEqualObjOrMongo;
+    var deepEqualObjOrMongo = MongoDBAdaptor.deepEqualObjOrMongo
     
 
     it('+ should compare null-equivalent values as equal', function() {
-        expect(deepEqualObjOrMongo(null, null)).to.be.true;
-        expect(deepEqualObjOrMongo(undefined, undefined)).to.be.true;
-        expect(deepEqualObjOrMongo(null, undefined)).to.be.true;
-        expect(deepEqualObjOrMongo(undefined, null)).to.be.true;
-    });
+        expect(deepEqualObjOrMongo(null, null)).to.be.true
+        expect(deepEqualObjOrMongo(undefined, undefined)).to.be.true
+        expect(deepEqualObjOrMongo(null, undefined)).to.be.true
+        expect(deepEqualObjOrMongo(undefined, null)).to.be.true
+    })
             
 
     it('+ should compare null-equivalent and non-null-equivalent values as not equal', function() {
-        expect(deepEqualObjOrMongo(null, 0)).to.be.false;
-        expect(deepEqualObjOrMongo(0, null)).to.be.false;
-        expect(deepEqualObjOrMongo(undefined, 0)).to.be.false;
-        expect(deepEqualObjOrMongo(0, undefined)).to.be.false;
-    });
+        expect(deepEqualObjOrMongo(null, 0)).to.be.false
+        expect(deepEqualObjOrMongo(0, null)).to.be.false
+        expect(deepEqualObjOrMongo(undefined, 0)).to.be.false
+        expect(deepEqualObjOrMongo(0, undefined)).to.be.false
+    })
             
 
     it('+ should compare equivalent arrays as equal', function() {
-        expect(deepEqualObjOrMongo([1,'b',3], [1,'b',3])).to.be.true;
-    });
+        expect(deepEqualObjOrMongo([1,'b',3], [1,'b',3])).to.be.true
+    })
             
 
     it('+ should compare unequivalent arrays as not equal', function() {
-        expect(deepEqualObjOrMongo([1,'b',3], [1,'b',3, 4])).to.be.false;
-        expect(deepEqualObjOrMongo([1,'b',3], [1,'b',3.01])).to.be.false;
-    });
+        expect(deepEqualObjOrMongo([1,'b',3], [1,'b',3, 4])).to.be.false
+        expect(deepEqualObjOrMongo([1,'b',3], [1,'b',3.01])).to.be.false
+    })
             
 
     it('+ should compare equivalent objects as equal', function() {
-        expect(deepEqualObjOrMongo({a: 1, b: 2}, {b: 2, a: 1})).to.be.true;
-    });
+        expect(deepEqualObjOrMongo({a: 1, b: 2}, {b: 2, a: 1})).to.be.true
+    })
             
 
     it('+ should compare unequivalent objects as not equal', function() {
-        expect(deepEqualObjOrMongo({a: 1, b: 2}, {a: 1, b: 3})).to.be.false;
-        expect(deepEqualObjOrMongo({a: 1, b: 2}, {a: 1, c: 2})).to.be.false;
-    });
+        expect(deepEqualObjOrMongo({a: 1, b: 2}, {a: 1, b: 3})).to.be.false
+        expect(deepEqualObjOrMongo({a: 1, b: 2}, {a: 1, c: 2})).to.be.false
+    })
             
 
     it('+ should compare equivalent Dates as equal', function() {
-        var base_time = 1000000000000;
-        expect(deepEqualObjOrMongo(new Date(base_time), new Date(base_time))).to.be.true;
-    });
+        var base_time = 1000000000000
+        expect(deepEqualObjOrMongo(new Date(base_time), new Date(base_time))).to.be.true
+    })
             
 
     it('+ should compare unequivalent Dates as notequal', function() {
-        var base_time = 1000000000000;
-        expect(deepEqualObjOrMongo(new Date(base_time), new Date(base_time + 2000))).to.be.false;
-    });
+        var base_time = 1000000000000
+        expect(deepEqualObjOrMongo(new Date(base_time), new Date(base_time + 2000))).to.be.false
+    })
             
-});
+})
     
     
 
 describe('MongoDBAdaptor', function() {
 
-    var NAME = 'MongoDBAdaptor_test';
-    var SIZE_MB = 500;
-    var RAM_DISK;
-    var PORT = 27016;
-    var SHOULD_DELETE_RAMDISK = true;
-    var MONGO_PATH = 'localhost:' + PORT + '/' + NAME;
+    var NAME = 'MongoDBAdaptor_test'
+    var SIZE_MB = 500
+    var RAM_DISK
+    var PORT = 27016
+    var SHOULD_DELETE_RAMDISK = true
+    var MONGO_PATH = 'localhost:' + PORT + '/' + NAME
 
 
-    var NOTE = 'dont use with anti-widgets!';
-    var UPDATED_NOTE = 'It actually works with anti-widgets!';
-    var PART_ID = '123400000000000000000000';
-    var COMPONENT_PART_ID = '123411111111111111111111';
-    var COMPONENT_PART_2_ID = '123422222222222222222222';
+    var NOTE = 'dont use with anti-widgets!'
+    var UPDATED_NOTE = 'It actually works with anti-widgets!'
+    var PART_ID = '123400000000000000000000'
+    var COMPONENT_PART_ID = '123411111111111111111111'
+    var COMPONENT_PART_2_ID = '123422222222222222222222'
 
-    var spawned_mongod;
+    var spawned_mongod
     var tmp_dir
 
 
     before(function(done) {
-        process.env['MONGO_PATH'] = MONGO_PATH;
-        tmp_dir = tmp.dirSync({unsafeCleanup: true});
-        var db_path  = path.join(tmp_dir.name, 'data');
-        var log_path = path.join(tmp_dir.name, 'log');
+        process.env['MONGO_PATH'] = MONGO_PATH
+        tmp_dir = tmp.dirSync({unsafeCleanup: true})
+        var db_path  = path.join(tmp_dir.name, 'data')
+        var log_path = path.join(tmp_dir.name, 'log')
         spawned_mongod = MongodMgr.startMongod(PORT.toString(), db_path, log_path, function() {
             function onError(error : Error) : void {
-                SHOULD_DELETE_RAMDISK = false;
+                SHOULD_DELETE_RAMDISK = false
             }
-            var mongo_path = 'localhost:27016/test';
-            MongooseMgr.connectViaMongoose(mongo_path, onError, done);
-        });
-    });
+            var mongo_path = 'localhost:27016/test'
+            MongooseMgr.connectViaMongoose(mongo_path, onError, done)
+        })
+    })
 
 
     after(function(done) {
         MongooseMgr.disconnectViaMongoose(function() {
             MongodMgr.stopMongod(spawned_mongod, function() {
-                tmp_dir.removeCallback();
+                tmp_dir.removeCallback()
                 done()
-            });
-        });
-    });
+            })
+        })
+    })
 
 
     describe('convertUpdateCommandToMongo()', function() {
 
-        var NON_ARRAY = {a: 1, b: 2};
-        var ARRAY = [3, 4];
-        var KEY = 'key';
-        var ELEMENT_ID = 'el-id';
+        var NON_ARRAY = {a: 1, b: 2}
+        var ARRAY = [3, 4]
+        var KEY = 'key'
+        var ELEMENT_ID = 'el-id'
 
 
         // This test data comes from the table in ./doc/MongoDB_management.md
@@ -236,89 +236,89 @@ describe('MongoDBAdaptor', function() {
                 expected_mongo_query: {},
                 expected_mongo_update: {$pull: {'n1.a1': {KEY: ELEMENT_ID}}}
             }
-        };
+        }
 
 
         function test_convertUpdateCommandToMongo(test_desc : ConvertMongodbUpdateArgsTest) {
-            var mongo_update = MongoDBAdaptor.convertUpdateCommandToMongo(test_desc.update_cmd);
-            expect(mongo_update.query).to.deep.equal(test_desc.expected_mongo_query);
-            //expect(mongo_update.update).to.deep.equal(test_desc.expected_mongo_update);
+            var mongo_update = MongoDBAdaptor.convertUpdateCommandToMongo(test_desc.update_cmd)
+            expect(mongo_update.query).to.deep.equal(test_desc.expected_mongo_query)
+            //expect(mongo_update.update).to.deep.equal(test_desc.expected_mongo_update)
         }
 
 
         it('+ should convert: set a non-array field in an object', function() {
-            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['SET_NONARRAY_FIELD_IN_OBJECT']);
-        });
+            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['SET_NONARRAY_FIELD_IN_OBJECT'])
+        })
 
 
         it('+ should convert: set an array field in an object', function() {
-            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['SET_ARRAY_FIELD_IN_OBJECT']);
-        });
+            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['SET_ARRAY_FIELD_IN_OBJECT'])
+        })
 
 
         it('+ should convert: unset a non-array field in an object', function() {
-            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['UNSET_NONARRAY_FIELD_IN_OBJECT']);
-        });
+            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['UNSET_NONARRAY_FIELD_IN_OBJECT'])
+        })
 
 
         it('+ should convert: unset an array field in an object', function() {
-            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['UNSET_ARRAY_FIELD_IN_OBJECT']);
-        });
+            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['UNSET_ARRAY_FIELD_IN_OBJECT'])
+        })
 
 
         it('+ should convert: set an element of an array', function() {
-            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['SET_ELEMENT_OF_ARRAY']);
-        });
+            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['SET_ELEMENT_OF_ARRAY'])
+        })
 
 
         it('+ should convert: set a field in an element of an array', function() {
-            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['SET_FIELD_IN_ELEMENT_OF_ARRAY']);
-        });
+            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['SET_FIELD_IN_ELEMENT_OF_ARRAY'])
+        })
 
 
         it('+ should convert: unset a field in an element of an array', function() {
-            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['UNSET_FIELD_IN_ELEMENT_OF_ARRAY']);
-        });
+            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['UNSET_FIELD_IN_ELEMENT_OF_ARRAY'])
+        })
 
 
         it('+ should convert: insert an element into an array', function() {
-            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['INSERT_ELEMENT_INTO_ARRAY']);
-        });
+            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['INSERT_ELEMENT_INTO_ARRAY'])
+        })
 
 
         it('+ should convert: remove an element from an array', function() {
-            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['REMOVE_ELEMENT_FROM_ARRAY']);
-        });
+            test_convertUpdateCommandToMongo(CONVERT_TO_UPDATE_ARGS_TESTS['REMOVE_ELEMENT_FROM_ARRAY'])
+        })
 
-    });
+    })
 
 
     describe('update()', function() {
 
-        var PARTS_ADAPTOR = new PartsMongoDB();
+        var PARTS_ADAPTOR = new PartsMongoDB()
 
 
         function test_update(part, conditions, update_cmd: DatabaseFactory.IUpdateFieldCommand, done, tests) {
-            if (conditions == null)  conditions = {};
-            var _id;
+            if (conditions == null)  conditions = {}
+            var _id
             function update(result) {
-                _id = result.elements[0]._id;
-                conditions['_id'] = _id;
-                return PARTS_ADAPTOR.update(conditions, [update_cmd]);
+                _id = result.elements[0]._id
+                conditions['_id'] = _id
+                return PARTS_ADAPTOR.update(conditions, [update_cmd])
             }
-            var create_promise = PARTS_ADAPTOR.create(part);
-            var update_promise = create_promise.then(update);
+            var create_promise = PARTS_ADAPTOR.create(part)
+            var update_promise = create_promise.then(update)
             update_promise.then(
                 (result) => {
-                    var updated_part = result.elements[0];
-                    expect(updated_part._id).to.equal(_id);
-                    tests(updated_part);
-                    done();
+                    var updated_part = result.elements[0]
+                    expect(updated_part._id).to.equal(_id)
+                    tests(updated_part)
+                    done()
                 },
                 (error) => {
-                    done(error);
+                    done(error)
                 }
-            );
+            )
         }
 
 
@@ -330,26 +330,26 @@ describe('MongoDBAdaptor', function() {
                     var PART = {
                         name:               'widget',
                         catalog_number:     'W-123'
-                    };
-                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'name', value: 'sideways widget'};
+                    }
+                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'name', value: 'sideways widget'}
                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                        expect(updated_part.name).to.equal('sideways widget');
-                    });
-                });
+                        expect(updated_part.name).to.equal('sideways widget')
+                    })
+                })
 
 
                 it('+ should create a non-existant field in an object', function(done) {
                     var PART = {
                         name:               'widget',
                         catalog_number:     'W-123'
-                    };
-                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'description', value: 'Used when upright isnt right'};
+                    }
+                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'description', value: 'Used when upright isnt right'}
                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                        expect(updated_part.description).to.equal('Used when upright isnt right');
-                    });
-                });
+                        expect(updated_part.description).to.equal('Used when upright isnt right')
+                    })
+                })
 
-            });
+            })
 
 
             describe('cmd=unset', function() {
@@ -358,16 +358,16 @@ describe('MongoDBAdaptor', function() {
                     var PART = {
                         name:               'widget',
                         catalog_number:     'W-123'
-                    };
-                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'unset', field: 'name'};
+                    }
+                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'unset', field: 'name'}
                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                        expect(updated_part.name).to.be.undefined;
-                    });
-                });
+                        expect(updated_part.name).to.be.undefined
+                    })
+                })
 
-            });
+            })
 
-        });
+        })
 
 
         describe('if selected item has a path with an array', function() {
@@ -379,14 +379,14 @@ describe('MongoDBAdaptor', function() {
                         name:               'widget',
                         catalog_number:     'W-123',
                         notes:              [NOTE]
-                    };
-                    var conditions = {notes: NOTE};
-                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'notes', element_id: NOTE, value: UPDATED_NOTE};
+                    }
+                    var conditions = {notes: NOTE}
+                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'notes', element_id: NOTE, value: UPDATED_NOTE}
                     test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
-                        expect(updated_part.notes.length).to.equal(1);
-                        expect(updated_part.notes[0]).to.equal(UPDATED_NOTE);
-                    });
-                });
+                        expect(updated_part.notes.length).to.equal(1)
+                        expect(updated_part.notes[0]).to.equal(UPDATED_NOTE)
+                    })
+                })
 
 
                 it('+ should replace an existing element in an array of objects', function(done) {
@@ -394,17 +394,17 @@ describe('MongoDBAdaptor', function() {
                         name:               'widget',
                         catalog_number:     'W-123',
                         components: [{part_id: PART_ID, info: {quantity: 1}}]
-                    };
-                    var conditions = {'components.part_id': PART_ID};
-                    var REPLACED_COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}};
-                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, value: REPLACED_COMPONENT};
+                    }
+                    var conditions = {'components.part_id': PART_ID}
+                    var REPLACED_COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}}
+                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, value: REPLACED_COMPONENT}
                     // TODO: fix: for some crazy reason, this sequence is modifying REPLACED_COMPONENT
                     test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
-                        expect(updated_part.components.length).to.equal(1);
-                        var component = updated_part.components[0];
-                        expect(component).to.deep.equal(REPLACED_COMPONENT);
-                    });
-                });
+                        expect(updated_part.components.length).to.equal(1)
+                        var component = updated_part.components[0]
+                        expect(component).to.deep.equal(REPLACED_COMPONENT)
+                    })
+                })
 
 
                 it('+ should create a new field in an existing element in an array of objects', function(done) {
@@ -412,14 +412,14 @@ describe('MongoDBAdaptor', function() {
                         name:               'widget',
                         catalog_number:     'W-123',
                         components: [{part_id: PART_ID, info: {quantity: 1}}]
-                    };
-                    var conditions = {'components.part_id': PART_ID};
-                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.color', value: 'bronze'};
+                    }
+                    var conditions = {'components.part_id': PART_ID}
+                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.color', value: 'bronze'}
                     test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
-                        var component = updated_part.components[0];
-                        expect(component.info).to.deep.equal({color: 'bronze', quantity: 1});
-                    });
-                });
+                        var component = updated_part.components[0]
+                        expect(component.info).to.deep.equal({color: 'bronze', quantity: 1})
+                    })
+                })
 
 
                 it('+ should replace an existing field in an existing element in an array of objects', function(done) {
@@ -427,16 +427,16 @@ describe('MongoDBAdaptor', function() {
                          name:               'widget',
                          catalog_number:     'W-123',
                          components: [{part_id: PART_ID, info: {quantity: 1}}]
-                     };
-                     var conditions = {'components.part_id': PART_ID};
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.quantity', value: 2};
+                     }
+                     var conditions = {'components.part_id': PART_ID}
+                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.quantity', value: 2}
                      test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
-                         var component = updated_part.components[0];
-                         expect(component.info).to.deep.equal({quantity: 2});
-                     });
-                });
+                         var component = updated_part.components[0]
+                         expect(component.info).to.deep.equal({quantity: 2})
+                     })
+                })
 
-            });
+            })
 
 
             describe('cmd=unset ', function() {
@@ -446,15 +446,15 @@ describe('MongoDBAdaptor', function() {
                          name:               'widget',
                          catalog_number:     'W-123',
                          components: [{part_id: PART_ID, info: {quantity: 1}}]
-                     };
-                     var conditions = {'components.part_id': PART_ID};
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'unset', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.quantity'};
+                     }
+                     var conditions = {'components.part_id': PART_ID}
+                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'unset', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.quantity'}
                      test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
-                         var component = updated_part.components[0];
-                         expect(component.info).to.exist;
-                         expect(component.info.quantity).to.be.undefined;
-                     });
-                });
+                         var component = updated_part.components[0]
+                         expect(component.info).to.exist
+                         expect(component.info.quantity).to.be.undefined
+                     })
+                })
 
 
                 it('- should not remove or delete an existing element of an array of simple types', function(done) {
@@ -462,18 +462,18 @@ describe('MongoDBAdaptor', function() {
                          name:               'widget',
                          catalog_number:     'W-123',
                          notes:              [NOTE]
-                     };
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'unset', field: 'notes', element_id: NOTE};
+                     }
+                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'unset', field: 'notes', element_id: NOTE}
                      test_update(PART, null, UPDATE_CMD, (error : Error) => {
                         if (error != null) {
-                            expect(error.message).to.equal('cmd=unset not allowed on array without a subfield, use cmd=remove');
-                            done();
+                            expect(error.message).to.equal('cmd=unset not allowed on array without a subfield, use cmd=remove')
+                            done()
                         } else {
-                            var error = new Error('unset unexpectedly succeeded');
-                            done(error);
+                            var error = new Error('unset unexpectedly succeeded')
+                            done(error)
                         }
-                     }, () => {});
-                });
+                     }, () => {})
+                })
 
 
                 it('- should not remove or delete an existing element of an array of objects', function(done) {
@@ -481,21 +481,21 @@ describe('MongoDBAdaptor', function() {
                          name:               'widget',
                          catalog_number:     'W-123',
                          components: [{part_id: PART_ID, info: {quantity: 1}}]
-                     };
-                     var conditions = {'components.part_id': PART_ID};
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'unset', field: 'components', key_field: 'part_id', element_id: PART_ID};
+                     }
+                     var conditions = {'components.part_id': PART_ID}
+                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'unset', field: 'components', key_field: 'part_id', element_id: PART_ID}
                      test_update(PART, conditions, UPDATE_CMD, (error : Error) => {
                         if (error != null) {
-                            expect(error.message).to.equal('cmd=unset not allowed on array without a subfield, use cmd=remove');
-                            done();
+                            expect(error.message).to.equal('cmd=unset not allowed on array without a subfield, use cmd=remove')
+                            done()
                         } else {
-                            var error = new Error('unset unexpectedly succeeded');
-                            done(error);
+                            var error = new Error('unset unexpectedly succeeded')
+                            done(error)
                         }
-                     }, () => {});
-                });
+                     }, () => {})
+                })
 
-            });
+            })
 
 
             describe('cmd=insert', function() {
@@ -505,40 +505,40 @@ describe('MongoDBAdaptor', function() {
                          name:               'widget',
                          catalog_number:     'W-123',
                          notes:              [NOTE]
-                     };
-                     var ADDED_NOTE = 'compatible with both left- and right-widgets';
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'insert', field: 'notes', value: ADDED_NOTE};
+                     }
+                     var ADDED_NOTE = 'compatible with both left- and right-widgets'
+                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'insert', field: 'notes', value: ADDED_NOTE}
                      test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                         var notes = updated_part.notes;
-                         expect(notes.length).to.equal(2);
-                         expect(notes[0]).to.equal(NOTE);
-                         expect(notes[1]).to.equal(ADDED_NOTE);
-                     });
-                });
+                         var notes = updated_part.notes
+                         expect(notes.length).to.equal(2)
+                         expect(notes[0]).to.equal(NOTE)
+                         expect(notes[1]).to.equal(ADDED_NOTE)
+                     })
+                })
 
 
                 it('+ should create a new element in an array of objects', function(done) {
-                     var COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}};
+                     var COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}}
                      var PART = {
                          name:              'widget',
                          catalog_number:    'W-123',
                          components:        [COMPONENT]
-                     };
-                     var ADDED_COMPONENT = {part_id: COMPONENT_PART_2_ID, info: {style: 'very stylish'}};
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'insert', field: 'components', value: ADDED_COMPONENT};
+                     }
+                     var ADDED_COMPONENT = {part_id: COMPONENT_PART_2_ID, info: {style: 'very stylish'}}
+                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'insert', field: 'components', value: ADDED_COMPONENT}
                      test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                         var components = getOverTheNetworkObject(updated_part.components);
-                         expect(components.length).to.equal(2);
+                         var components = getOverTheNetworkObject(updated_part.components)
+                         expect(components.length).to.equal(2)
                          // didn't compare entire component via deep.equal because of _id
-                         expect(components[0].part_id).to.equal(COMPONENT.part_id);
-                         expect(components[0].info).to.deep.equal(COMPONENT.info);
-                         expect(components[1].part_id).to.equal(ADDED_COMPONENT.part_id);
-                         expect(components[1].info).to.deep.equal(ADDED_COMPONENT.info);
-                     });
+                         expect(components[0].part_id).to.equal(COMPONENT.part_id)
+                         expect(components[0].info).to.deep.equal(COMPONENT.info)
+                         expect(components[1].part_id).to.equal(ADDED_COMPONENT.part_id)
+                         expect(components[1].info).to.deep.equal(ADDED_COMPONENT.info)
+                     })
 
-                });
+                })
 
-            });
+            })
 
 
             describe('cmd=remove', function() {
@@ -548,33 +548,33 @@ describe('MongoDBAdaptor', function() {
                          name:               'widget',
                          catalog_number:     'W-123',
                          notes:              [NOTE]
-                     };
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'remove', field: 'notes', element_id: NOTE};
+                     }
+                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'remove', field: 'notes', element_id: NOTE}
                      test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                         var notes = updated_part.notes;
-                         expect(notes.length).to.equal(0);
-                     });
-                });
+                         var notes = updated_part.notes
+                         expect(notes.length).to.equal(0)
+                     })
+                })
 
 
                 it('+ should remove an existing element from an array of objects', function(done) {
-                     var COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}};
+                     var COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}}
                      var PART = {
                          name:              'widget',
                          catalog_number:    'W-123',
                          components:        [COMPONENT]
-                     };
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'remove', field: 'components', key_field: 'part_id', element_id: COMPONENT_PART_ID};
+                     }
+                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'remove', field: 'components', key_field: 'part_id', element_id: COMPONENT_PART_ID}
                      test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                         var notes = updated_part.notes;
-                         expect(notes.length).to.equal(0);
-                     });
-                });
+                         var notes = updated_part.notes
+                         expect(notes.length).to.equal(0)
+                     })
+                })
 
-            });
+            })
 
-        });
+        })
 
-    });
+    })
 
-});
+})
