@@ -1,5 +1,5 @@
 import mongoose                         = require('mongoose')
-import DatabaseFactory                  = require('DatabaseFactory')
+import Database                  = require('Database')
 
 
 export interface MongodbUpdateArgs {
@@ -8,16 +8,16 @@ export interface MongodbUpdateArgs {
 }
 
 
-export class MongoDBAdaptor implements DatabaseFactory.IDocumentDatabase {
+export class MongoDBAdaptor implements Database.DocumentDatabase {
     static  createObjectId() : string 
     static isEmpty(obj): boolean
     static deepEqualObjOrMongo(lhs, rhs) : boolean
-    static convertUpdateCommandToMongo(update : DatabaseFactory.IUpdateFieldCommand) : MongodbUpdateArgs
-    static convertUpdateCommandsToMongo(updates : DatabaseFactory.IUpdateFieldCommand[]) : MongodbUpdateArgs[]
+    static convertUpdateCommandToMongo(update : Database.UpdateFieldCommand) : MongodbUpdateArgs
+    static convertUpdateCommandsToMongo(updates : Database.UpdateFieldCommand[]) : MongodbUpdateArgs[]
     constructor(typename : string, model : mongoose.Model<mongoose.Document>, done? : () => void)
     create(obj : any) : Promise<any>
-    read(conditions : any, fields? : any, sort?: any, cursor? : DatabaseFactory.IDatabaseCursor) : Promise<any>
-    update(conditions : any, updates : DatabaseFactory.IUpdateFieldCommand[], getOriginalDocument? : (doc : any) => void) : Promise<any>
+    read(conditions : any, fields? : any, sort?: any, cursor? : Database.DatabaseCursor) : Promise<any>
+    update(conditions : any, updates : Database.UpdateFieldCommand[], getOriginalDocument? : (doc : any) => void) : Promise<any>
     delete(conditions : any, getOriginalDocument? : (doc : any) => void) : Promise<any>
 }
 

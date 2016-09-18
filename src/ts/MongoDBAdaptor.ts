@@ -4,7 +4,7 @@ mongoose.Promise = global.Promise
 import pino                             = require('pino')
 
 import configure                        = require('configure-local')
-import DatabaseFactory                  = require('DatabaseFactory')
+import Database                  = require('Database')
 import {MongodbUpdateArgs} from '../../MongoDBAdaptor'
 
 
@@ -17,7 +17,7 @@ var log = pino({name: 'MongoDBAdaptor'})
 
 // This adaptor converts application queries into Mongo queries
 // and the query results into application results, suitable for use by cscFramework
-export class MongoDBAdaptor implements DatabaseFactory.IDocumentDatabase {
+export class MongoDBAdaptor implements Database.DocumentDatabase {
 
 
     static  createObjectId() : string {
@@ -76,7 +76,7 @@ export class MongoDBAdaptor implements DatabaseFactory.IDocumentDatabase {
 
     private static CONVERT_COMMAND = {
 
-        set: function(update : DatabaseFactory.IUpdateFieldCommand) {
+        set: function(update : Database.UpdateFieldCommand) {
             var mongo_query = {}
             var set_args = {}
             if ('element_id' in update) {
@@ -105,7 +105,7 @@ export class MongoDBAdaptor implements DatabaseFactory.IDocumentDatabase {
         },
 
 
-        unset: function(update : DatabaseFactory.IUpdateFieldCommand) {
+        unset: function(update : Database.UpdateFieldCommand) {
             var mongo_query = {}
             var unset_args = {}
             if ('element_id' in update) {
@@ -132,7 +132,7 @@ export class MongoDBAdaptor implements DatabaseFactory.IDocumentDatabase {
         },
 
 
-        insert: function(update : DatabaseFactory.IUpdateFieldCommand) {
+        insert: function(update : Database.UpdateFieldCommand) {
             var mongo_query = {}
             var add_args = {}
             add_args[update.field] = update.value
@@ -140,7 +140,7 @@ export class MongoDBAdaptor implements DatabaseFactory.IDocumentDatabase {
         },
 
 
-        remove: function(update : DatabaseFactory.IUpdateFieldCommand) {
+        remove: function(update : Database.UpdateFieldCommand) {
             var mongo_query = {}
             var pull_args = {}
             var matcher : any
@@ -161,7 +161,7 @@ export class MongoDBAdaptor implements DatabaseFactory.IDocumentDatabase {
     }
 
 
-    static convertUpdateCommandToMongo(update : DatabaseFactory.IUpdateFieldCommand) : MongodbUpdateArgs {
+    static convertUpdateCommandToMongo(update : Database.UpdateFieldCommand) : MongodbUpdateArgs {
         if (update.cmd in MongoDBAdaptor.CONVERT_COMMAND) {
             var mongo_update = MongoDBAdaptor.CONVERT_COMMAND[update.cmd](update)
             return mongo_update
@@ -171,7 +171,7 @@ export class MongoDBAdaptor implements DatabaseFactory.IDocumentDatabase {
     }
 
 
-    static convertUpdateCommandsToMongo(updates : DatabaseFactory.IUpdateFieldCommand[]) : MongodbUpdateArgs[] {
+    static convertUpdateCommandsToMongo(updates : Database.UpdateFieldCommand[]) : MongodbUpdateArgs[] {
         var mongo_updates = []
         for (var i = 0 ; i < updates.length ; ++i) {
             var update = updates[i]
@@ -235,7 +235,7 @@ export class MongoDBAdaptor implements DatabaseFactory.IDocumentDatabase {
 
 
     // @return a Promise with the matching elements
-    read(conditions : any, fields? : any, sort?: any, cursor? : DatabaseFactory.IDatabaseCursor) : Promise<{elements: any[];}> {
+    read(conditions : any, fields? : any, sort?: any, cursor? : Database.DatabaseCursor) : Promise<{elements: any[];}> {
         return new Promise((resolve, reject) => {
             var mongoose_query = this.model.find(conditions, fields, cursor)
             if (sort != null) {
@@ -258,7 +258,7 @@ export class MongoDBAdaptor implements DatabaseFactory.IDocumentDatabase {
 
 
     // @return a Promise with the updated elements
-    update(conditions : any, updates : DatabaseFactory.IUpdateFieldCommand[], getOriginalDocument? : (doc : any) => void) : Promise<any> {
+    update(conditions : any, updates : Database.UpdateFieldCommand[], getOriginalDocument? : (doc : any) => void) : Promise<any> {
         function getId(conditions) : string {
             if ('_id' in conditions) {
                 var condition = conditions._id

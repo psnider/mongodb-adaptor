@@ -8,7 +8,7 @@ import path                             = require('path')
 import tmp                              = require('tmp')
 
 import configure                        = require('configure-local')
-import DatabaseFactory                  = require('DatabaseFactory')
+import Database                         = require('Database')
 import MongodMgr                        = require('mongod-mgr')
 import MongooseMgr                      = require('mongoose-mgr')
 import {MongoDBAdaptor} from 'MongoDBAdaptor'
@@ -26,7 +26,7 @@ function getOverTheNetworkObject(obj : any) : any {
 
 
 interface ConvertMongodbUpdateArgsTest {
-    update_cmd:                 DatabaseFactory.IUpdateFieldCommand
+    update_cmd:                 Database.UpdateFieldCommand
     expected_mongo_query:       any
     expected_mongo_update:      any
 }
@@ -297,7 +297,7 @@ describe('MongoDBAdaptor', function() {
         var PARTS_ADAPTOR = new PartsMongoDB()
 
 
-        function test_update(part, conditions, update_cmd: DatabaseFactory.IUpdateFieldCommand, done, tests) {
+        function test_update(part, conditions, update_cmd: Database.UpdateFieldCommand, done, tests) {
             if (conditions == null)  conditions = {}
             var _id
             function update(result) {
@@ -330,7 +330,7 @@ describe('MongoDBAdaptor', function() {
                         name:               'widget',
                         catalog_number:     'W-123'
                     }
-                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'name', value: 'sideways widget'}
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'name', value: 'sideways widget'}
                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
                         expect(updated_part.name).to.equal('sideways widget')
                     })
@@ -342,7 +342,7 @@ describe('MongoDBAdaptor', function() {
                         name:               'widget',
                         catalog_number:     'W-123'
                     }
-                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'description', value: 'Used when upright isnt right'}
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'description', value: 'Used when upright isnt right'}
                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
                         expect(updated_part.description).to.equal('Used when upright isnt right')
                     })
@@ -358,7 +358,7 @@ describe('MongoDBAdaptor', function() {
                         name:               'widget',
                         catalog_number:     'W-123'
                     }
-                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'unset', field: 'name'}
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'name'}
                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
                         expect(updated_part.name).to.be.undefined
                     })
@@ -380,7 +380,7 @@ describe('MongoDBAdaptor', function() {
                         notes:              [NOTE]
                     }
                     var conditions = {notes: NOTE}
-                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'notes', element_id: NOTE, value: UPDATED_NOTE}
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'notes', element_id: NOTE, value: UPDATED_NOTE}
                     test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
                         expect(updated_part.notes.length).to.equal(1)
                         expect(updated_part.notes[0]).to.equal(UPDATED_NOTE)
@@ -396,7 +396,7 @@ describe('MongoDBAdaptor', function() {
                     }
                     var conditions = {'components.part_id': PART_ID}
                     var REPLACED_COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}}
-                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, value: REPLACED_COMPONENT}
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, value: REPLACED_COMPONENT}
                     // TODO: fix: for some crazy reason, this sequence is modifying REPLACED_COMPONENT
                     test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
                         expect(updated_part.components.length).to.equal(1)
@@ -413,7 +413,7 @@ describe('MongoDBAdaptor', function() {
                         components: [{part_id: PART_ID, info: {quantity: 1}}]
                     }
                     var conditions = {'components.part_id': PART_ID}
-                    var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.color', value: 'bronze'}
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.color', value: 'bronze'}
                     test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
                         var component = updated_part.components[0]
                         expect(component.info).to.deep.equal({color: 'bronze', quantity: 1})
@@ -428,7 +428,7 @@ describe('MongoDBAdaptor', function() {
                          components: [{part_id: PART_ID, info: {quantity: 1}}]
                      }
                      var conditions = {'components.part_id': PART_ID}
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.quantity', value: 2}
+                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.quantity', value: 2}
                      test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
                          var component = updated_part.components[0]
                          expect(component.info).to.deep.equal({quantity: 2})
@@ -447,7 +447,7 @@ describe('MongoDBAdaptor', function() {
                          components: [{part_id: PART_ID, info: {quantity: 1}}]
                      }
                      var conditions = {'components.part_id': PART_ID}
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'unset', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.quantity'}
+                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.quantity'}
                      test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
                          var component = updated_part.components[0]
                          expect(component.info).to.exist
@@ -462,7 +462,7 @@ describe('MongoDBAdaptor', function() {
                          catalog_number:     'W-123',
                          notes:              [NOTE]
                      }
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'unset', field: 'notes', element_id: NOTE}
+                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'notes', element_id: NOTE}
                      test_update(PART, null, UPDATE_CMD, (error : Error) => {
                         if (error != null) {
                             expect(error.message).to.equal('cmd=unset not allowed on array without a subfield, use cmd=remove')
@@ -482,7 +482,7 @@ describe('MongoDBAdaptor', function() {
                          components: [{part_id: PART_ID, info: {quantity: 1}}]
                      }
                      var conditions = {'components.part_id': PART_ID}
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'unset', field: 'components', key_field: 'part_id', element_id: PART_ID}
+                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'components', key_field: 'part_id', element_id: PART_ID}
                      test_update(PART, conditions, UPDATE_CMD, (error : Error) => {
                         if (error != null) {
                             expect(error.message).to.equal('cmd=unset not allowed on array without a subfield, use cmd=remove')
@@ -506,7 +506,7 @@ describe('MongoDBAdaptor', function() {
                          notes:              [NOTE]
                      }
                      var ADDED_NOTE = 'compatible with both left- and right-widgets'
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'insert', field: 'notes', value: ADDED_NOTE}
+                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'insert', field: 'notes', value: ADDED_NOTE}
                      test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
                          var notes = updated_part.notes
                          expect(notes.length).to.equal(2)
@@ -524,7 +524,7 @@ describe('MongoDBAdaptor', function() {
                          components:        [COMPONENT]
                      }
                      var ADDED_COMPONENT = {part_id: COMPONENT_PART_2_ID, info: {style: 'very stylish'}}
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'insert', field: 'components', value: ADDED_COMPONENT}
+                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'insert', field: 'components', value: ADDED_COMPONENT}
                      test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
                          var components = getOverTheNetworkObject(updated_part.components)
                          expect(components.length).to.equal(2)
@@ -548,7 +548,7 @@ describe('MongoDBAdaptor', function() {
                          catalog_number:     'W-123',
                          notes:              [NOTE]
                      }
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'remove', field: 'notes', element_id: NOTE}
+                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'remove', field: 'notes', element_id: NOTE}
                      test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
                          var notes = updated_part.notes
                          expect(notes.length).to.equal(0)
@@ -563,7 +563,7 @@ describe('MongoDBAdaptor', function() {
                          catalog_number:    'W-123',
                          components:        [COMPONENT]
                      }
-                     var UPDATE_CMD : DatabaseFactory.IUpdateFieldCommand = {cmd: 'remove', field: 'components', key_field: 'part_id', element_id: COMPONENT_PART_ID}
+                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'remove', field: 'components', key_field: 'part_id', element_id: COMPONENT_PART_ID}
                      test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
                          var notes = updated_part.notes
                          expect(notes.length).to.equal(0)

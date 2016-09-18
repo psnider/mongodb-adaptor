@@ -1,12 +1,12 @@
-declare module 'DatabaseFactory' {
+declare module 'Database' {
 
-    export interface IDatabaseCursor {
+    export interface DatabaseCursor {
         start_offset?:  number
         count?:         number
     }
 
 
-    export interface IUpdateFieldCommand {
+    export interface UpdateFieldCommand {
         cmd:            string;     // set, unset, and for arrays: insert, remove
         field:          string
         key_field?:     string;     // The field that contains the unique key of an array element
@@ -16,61 +16,46 @@ declare module 'DatabaseFactory' {
     }
 
 
-    interface IRequestQuery {
+    interface RequestQuery {
         ids?:           string[];   // DatabaseObjectID
         conditions?:    any
         fields?:        string[]
         sort?:          any
-        cursor?:        IDatabaseCursor
+        cursor?:        DatabaseCursor
     }
 
 
-    interface IRequest {
+    interface Request {
         action:         string
         // TYPENAME?:      T;    // used only by create, indexed by cscFrameworkServer.typename_key
-        query?:         IRequestQuery
-        updates?:       IUpdateFieldCommand[]
+        query?:         RequestQuery
+        updates?:       UpdateFieldCommand[]
     }
 
 
-    interface IResponse_Result<T> {
+    interface Response_Result<T> {
         total_count?: number
         elements: T[]
     }
 
 
-    interface IResponse {
+    interface Response {
         error?: any
         result?: any
     }
 
 
-    interface IResponseWStatus {
+    interface ResponseWStatus {
         http_status?:   number
-        response?:      IResponse
+        response?:      Response
     }
 
 
-    export interface IDocumentDatabase {
+    export interface DocumentDatabase {
         create(obj : any) : Promise<any>
-        read(conditions : any, fields? : any, sort?: any, cursor? : IDatabaseCursor) : Promise<any>
+        read(conditions : any, fields? : any, sort?: any, cursor? : DatabaseCursor) : Promise<any>
         update(conditions : any, update : any, getOriginalDocument? : (doc : any) => void) : Promise<any>
         delete(conditions : any, getOriginalDocument? : (doc : any) => void) : Promise<any>
-    }
-
-
-    export interface IDatabaseFactory {
-        create(typename : string) : IDocumentDatabase
-        disconnect(done? : () => void)
-        createObjectId() : string
-    }
-
-
-    export class DatabaseFactory implements IDatabaseFactory {
-        constructor(db_type : string, done? : (db_factory : IDatabaseFactory) => void)
-        disconnect(done? : () => void)
-        create(typename : string) : IDocumentDatabase
-        createObjectId() : string
     }
 
 }

@@ -12,10 +12,14 @@
     "build": "tsc -p .",
     "test": "npm run build && NODE_PATH=.:generated/src/ts   mocha -R spec generated/test/ts/MongoDBAdaptor.tests.js"
   },
-  "author": "",
+  "author": {
+    "name": "Peter Snider",
+    "email": "snider.peter@gmail.com"
+  },
   "license": "MIT",
   "dependencies": {
     "configure-local": "github:psnider/configure-local",
+    "mongodb-runner": "github:psnider/mongod-runner",
     "mongoose": "^4.6.0",
     "pino": "^2.10.1"
   },
@@ -27,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:psnider/MongoDBAdaptor.git"
+    "url": "git@github.com:psnider/mongodb-adaptor.git"
   },
   "typings": "./MongoDBAdaptor.d.ts"
 }
