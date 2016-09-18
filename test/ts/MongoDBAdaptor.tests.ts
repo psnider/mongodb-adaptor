@@ -9,7 +9,7 @@ import tmp                              = require('tmp')
 
 import configure                        = require('configure-local')
 import Database                         = require('Database')
-import MongodMgr                        = require('mongod-mgr')
+import MongodRunner                     = require('mongod-runner')
 import MongooseMgr                      = require('mongoose-mgr')
 import {MongoDBAdaptor} from 'MongoDBAdaptor'
 
@@ -159,7 +159,7 @@ describe('MongoDBAdaptor', function() {
         tmp_dir = tmp.dirSync({unsafeCleanup: true})
         var db_path  = path.join(tmp_dir.name, 'data')
         var log_path = path.join(tmp_dir.name, 'log')
-        spawned_mongod = MongodMgr.startMongod(PORT.toString(), db_path, log_path, function() {
+        spawned_mongod = MongodRunner.startMongod(PORT.toString(), db_path, log_path, function() {
             function onError(error : Error) : void {
                 SHOULD_DELETE_RAMDISK = false
             }
@@ -171,7 +171,7 @@ describe('MongoDBAdaptor', function() {
 
     after(function(done) {
         MongooseMgr.disconnectViaMongoose(function() {
-            MongodMgr.stopMongod(spawned_mongod, function() {
+            MongodRunner.stopMongod(spawned_mongod, function() {
                 tmp_dir.removeCallback()
                 done()
             })

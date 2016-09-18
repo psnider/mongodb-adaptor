@@ -7,7 +7,7 @@
   "private": false,
   "scripts": {
     "postinstall": "typings install && ln -s .. node_modules/MongoDBAdaptor",
-    "reinstall": "rm -fr node_modules && npm install",
+    "reinstall": "rm -fr node_modules typings && npm install",
     "clean": "rm -fr generated",
     "build": "tsc -p .",
     "test": "npm run build && NODE_PATH=.:generated/src/ts   mocha -R spec generated/test/ts/MongoDBAdaptor.tests.js"
@@ -19,7 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "configure-local": "github:psnider/configure-local",
-    "mongodb-runner": "github:psnider/mongod-runner",
+    "mongod-runner": "github:psnider/mongod-runner",
     "mongoose": "^4.6.0",
     "pino": "^2.10.1"
   },

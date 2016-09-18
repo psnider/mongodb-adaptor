@@ -31,18 +31,15 @@
         "test/ts/*.ts",
         "typings/index.d.ts",
         "Database.d.ts",
-        "mongod-mgr.d.ts",
         "mongoose-mgr.d.ts",
         "MongoDBAdaptor.d.ts"
     ],
     "files": [
-        "src/ts/mongod-mgr.ts",
         "src/ts/mongoose-mgr.ts",
         "src/ts/MongoDBAdaptor.ts",
         "test/ts/MongoDBAdaptor.tests.ts",
         "typings/index.d.ts",
         "Database.d.ts",
-        "mongod-mgr.d.ts",
         "mongoose-mgr.d.ts",
         "MongoDBAdaptor.d.ts"
     ],
