@@ -4,7 +4,7 @@ mongoose.Promise = global.Promise
 import pino                             = require('pino')
 
 import configure                        = require('configure-local')
-import Database                  = require('Database')
+import Database                         = require('Database')
 import {MongodbUpdateArgs} from '../../MongoDBAdaptor'
 
 

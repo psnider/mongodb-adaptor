@@ -10,7 +10,7 @@ import tmp                              = require('tmp')
 import configure                        = require('configure-local')
 import Database                         = require('Database')
 import MongodRunner                     = require('mongod-runner')
-import MongooseMgr                      = require('mongoose-mgr')
+import MongooseMgr                      = require('mongoose-connector')
 import {MongoDBAdaptor} from 'MongoDBAdaptor'
 
 
@@ -164,13 +164,13 @@ describe('MongoDBAdaptor', function() {
                 SHOULD_DELETE_RAMDISK = false
             }
             var mongo_path = 'localhost:27016/test'
-            MongooseMgr.connectViaMongoose(mongo_path, onError, done)
+            MongooseMgr.connect(mongo_path, onError, done)
         })
     })
 
 
     after(function(done) {
-        MongooseMgr.disconnectViaMongoose(function() {
+        MongooseMgr.disconnect(function() {
             MongodRunner.stopMongod(spawned_mongod, function() {
                 tmp_dir.removeCallback()
                 done()

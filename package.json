@@ -21,6 +21,7 @@
     "configure-local": "github:psnider/configure-local",
     "mongod-runner": "github:psnider/mongod-runner",
     "mongoose": "^4.6.0",
+    "mongoose-connector": "github:psnider/mongoose-connector",
     "pino": "^2.10.1"
   },
   "devDependencies": {
