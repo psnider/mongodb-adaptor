@@ -18,9 +18,9 @@ declare module 'Database' {
 
     interface RequestQuery {
         ids?:           string[];   // DatabaseObjectID
-        conditions?:    any
+        conditions?:    Object
         fields?:        string[]
-        sort?:          any
+        sort?:          Object
         cursor?:        DatabaseCursor
     }
 
@@ -41,7 +41,7 @@ declare module 'Database' {
 
     interface Response {
         error?: any
-        result?: any
+        result?: Object
     }
 
 
@@ -52,10 +52,11 @@ declare module 'Database' {
 
 
     export interface DocumentDatabase {
-        create(obj : any) : Promise<any>
-        read(conditions : any, fields? : any, sort?: any, cursor? : DatabaseCursor) : Promise<any>
-        update(conditions : any, update : any, getOriginalDocument? : (doc : any) => void) : Promise<any>
-        delete(conditions : any, getOriginalDocument? : (doc : any) => void) : Promise<any>
+        create(obj : Object) : Promise<Object>
+        readById(id : String) : Promise<{elements: Object[]}>
+        read(conditions : Object, fields? : Object, sort?: Object, cursor? : DatabaseCursor) : Promise<{elements: Object[]}>
+        update(conditions : Object, update : Object, getOriginalDocument? : (doc : Object) => void) : Promise<Object>
+        delete(conditions : Object, getOriginalDocument? : (doc : Object) => void) : Promise<Object>
     }
 
 }

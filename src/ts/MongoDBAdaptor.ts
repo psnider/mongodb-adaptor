@@ -191,32 +191,34 @@ export class MongoDBAdaptor implements Database.DocumentDatabase {
 
     // Converting ObjectId to a string
     static convertMongoIdsToStrings(obj : any) : any {
-        if (Array.isArray(obj)) {
-            obj.forEach((element, i, array) => {
-                if (element) {
-                    array[i] = MongoDBAdaptor.convertMongoIdsToStrings(element)
-                }
-            })
-        } else if (obj instanceof mongoose.Types.ObjectId) {
-            obj = obj.toString()
-        } else if (typeof obj === 'object') {
-            Object.keys(obj).forEach((key) => {
-                if (obj[key]) {
-                    obj[key] = MongoDBAdaptor.convertMongoIdsToStrings(obj[key])
-                }
-            })
+        if (obj != null) {
+            if (Array.isArray(obj)) {
+                obj.forEach((element, i, array) => {
+                    if (element) {
+                        array[i] = MongoDBAdaptor.convertMongoIdsToStrings(element)
+                    }
+                })
+            } else if (obj instanceof mongoose.Types.ObjectId) {
+                obj = obj.toString()
+            } else if (typeof obj === 'object') {
+                Object.keys(obj).forEach((key) => {
+                    if (obj[key]) {
+                        obj[key] = MongoDBAdaptor.convertMongoIdsToStrings(obj[key])
+                    }
+                })
+            }
         }
         return obj
     }
 
 
-    constructor(private typename : string, private model : mongoose.Model<mongoose.Document>, done? : () => void) {
+    constructor(private typename : string, private model : mongoose.Model<mongoose.Document>, done? : (error?: Error) => void) {
         if (done != null)  done()
     }
 
 
     // @return a Promise with the created element
-    create(obj : any) : Promise<any> {
+    create(obj : Object) : Promise<Object> {
         return new Promise((resolve, reject) => {
             var document : mongoose.Document = new this.model(obj)
             document.save((error, element : mongoose.Document) => {
@@ -234,8 +236,26 @@ export class MongoDBAdaptor implements Database.DocumentDatabase {
     }
 
 
+    // @return a Promise with the matching element
+    readById(id : String) : Promise<{elements: Object[]}> {
+        return new Promise((resolve, reject) => {
+            var mongoose_query = this.model.findById(id)
+            mongoose_query.lean().exec().then(
+                (doc: {}) => {
+                    MongoDBAdaptor.convertMongoIdsToStrings(doc)
+                    var result = (doc != null) ? [doc] : []
+                    resolve({elements: result})
+                },
+                (error) => {
+                    reject(error)
+                }
+            )
+        })
+    }
+
+
     // @return a Promise with the matching elements
-    read(conditions : any, fields? : any, sort?: any, cursor? : Database.DatabaseCursor) : Promise<{elements: any[];}> {
+    read(conditions : Object, fields? : Object, sort?: Object, cursor? : Database.DatabaseCursor) : Promise<{elements: Object[];}> {
         return new Promise((resolve, reject) => {
             var mongoose_query = this.model.find(conditions, fields, cursor)
             if (sort != null) {

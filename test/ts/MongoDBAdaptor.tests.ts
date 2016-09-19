@@ -66,16 +66,6 @@ var PartModel = mongoose.model('Part', PART_SCHEMA)
 
 
 
-export class PartsMongoDB extends MongoDBAdaptor {
-
-    constructor(done? : () => void) {
-        super('Part', PartModel, done)
-    }
-
-}
-
-
-
 describe('deepEqualObjOrMongo', function() {
     
     var deepEqualObjOrMongo = MongoDBAdaptor.deepEqualObjOrMongo
@@ -152,6 +142,8 @@ describe('MongoDBAdaptor', function() {
 
     var spawned_mongod
     var tmp_dir
+
+    var PARTS_ADAPTOR= new MongoDBAdaptor('Part', PartModel, (error) => {if (error) {throw error}})
 
 
     before(function(done) {
@@ -292,10 +284,125 @@ describe('MongoDBAdaptor', function() {
     })
 
 
+    describe('create()', function() {
+
+        const PART = {
+            name:               'widget-u',
+            catalog_number:     'W-123-c'
+        }
+
+        it('+ should create a new object', function(done) {
+            var create_promise = PARTS_ADAPTOR.create(PART)
+            create_promise.then(
+                (result) => {
+                    var created_part = result.elements[0]
+                    expect(created_part).to.not.be.eql(PART)
+                    expect(created_part._id).to.exist
+                    expect(created_part.name).to.equal(PART.name)
+                    expect(created_part.catalog_number).to.equal(PART.catalog_number)
+                    done()
+                },
+                (error) => {
+                    done(error)
+                }
+            )
+        })
+
+    })
+
+
+    describe('readById()', function() {
+
+        const PART = {
+            name:               'widget-r',
+            catalog_number:     'W-001-r'
+        }
+
+
+        it('+ should read a previously created object', function(done) {
+            var create_promise = PARTS_ADAPTOR.create(PART)
+            create_promise.then(
+                (result) => {
+                    var created_part = result.elements[0]
+                    var read_promise = PARTS_ADAPTOR.readById(created_part._id)
+                    read_promise.then(
+                        (result) => {
+                            expect(created_part).to.not.be.eql(PART)
+                            expect(created_part.name).to.equal(PART.name)
+                            expect(created_part.catalog_number).to.equal(PART.catalog_number)
+                            done()
+                        }
+                    )
+                },
+                (error) => {
+                    done(error)
+                }
+            )
+        })
+
+
+        it('+ should return no result for a non-existant object', function(done) {
+            var read_promise = PARTS_ADAPTOR.readById('ffffffffffffffffffffffff')
+            read_promise.then(
+                (result) => {
+                    expect(result.elements).to.be.instanceof(Array)
+                    expect(result.elements).to.be.empty
+                    done()
+                },
+                (error) => {
+                    done(error)
+                }
+            )
+        })
+    })
+
+
+    describe('delete()', function() {
+
+        const PART = {
+            name:               'widget-d',
+            catalog_number:     'W-002-d'
+        }
+
+
+        it('+ should delete a previously created object', function(done) {
+            var create_promise = PARTS_ADAPTOR.create(PART)
+            create_promise.then(
+                (result) => {
+                    var created_part = result.elements[0]
+                    var delete_promise = PARTS_ADAPTOR.delete(created_part.id)
+                    delete_promise.then(
+                        (result) => {
+                            expect(created_part).to.not.be.eql(PART)
+                            expect(created_part.name).to.equal(PART.name)
+                            expect(created_part.catalog_number).to.equal(PART.catalog_number)
+                        }
+                    ).then(
+                        (result) => {
+                            var read_promise = PARTS_ADAPTOR.readById(created_part._id)
+                            read_promise.then(
+                                (result) => {
+                                    expect(result.elements).to.be.instanceof(Array)
+                                    expect(result.elements).to.be.empty
+                                    done()
+                                },
+                                (error) => {
+                                    done(error)
+                                }
+                            )
+                        }
+                    )
+                },
+                (error) => {
+                    done(error)
+                }
+            )
+        })
+
+    })
+
+
     describe('update()', function() {
-
-        var PARTS_ADAPTOR = new PartsMongoDB()
-
 
         function test_update(part, conditions, update_cmd: Database.UpdateFieldCommand, done, tests) {
             if (conditions == null)  conditions = {}
@@ -327,8 +434,8 @@ describe('MongoDBAdaptor', function() {
 
                 it('+ should replace an existing field in an object', function(done) {
                     var PART = {
-                        name:               'widget',
-                        catalog_number:     'W-123'
+                        name:               'widget-u',
+                        catalog_number:     'W-123.0'
                     }
                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'name', value: 'sideways widget'}
                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
@@ -339,8 +446,8 @@ describe('MongoDBAdaptor', function() {
 
                 it('+ should create a non-existant field in an object', function(done) {
                     var PART = {
-                        name:               'widget',
-                        catalog_number:     'W-123'
+                        name:               'widget-u',
+                        catalog_number:     'W-123.1'
                     }
                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'description', value: 'Used when upright isnt right'}
                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
@@ -355,8 +462,8 @@ describe('MongoDBAdaptor', function() {
 
                 it('+ should remove an existing field in an object', function(done) {
                     var PART = {
-                        name:               'widget',
-                        catalog_number:     'W-123'
+                        name:               'widget-u',
+                        catalog_number:     'W-123.2'
                     }
                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'name'}
                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
@@ -375,8 +482,8 @@ describe('MongoDBAdaptor', function() {
 
                 it('+ should replace an existing element in an array of simple types', function(done) {
                     var PART = {
-                        name:               'widget',
-                        catalog_number:     'W-123',
+                        name:               'widget-u',
+                        catalog_number:     'W-123.3',
                         notes:              [NOTE]
                     }
                     var conditions = {notes: NOTE}
@@ -390,8 +497,8 @@ describe('MongoDBAdaptor', function() {
 
                 it('+ should replace an existing element in an array of objects', function(done) {
                     var PART = {
-                        name:               'widget',
-                        catalog_number:     'W-123',
+                        name:               'widget-u',
+                        catalog_number:     'W-123.4',
                         components: [{part_id: PART_ID, info: {quantity: 1}}]
                     }
                     var conditions = {'components.part_id': PART_ID}
@@ -408,8 +515,8 @@ describe('MongoDBAdaptor', function() {
 
                 it('+ should create a new field in an existing element in an array of objects', function(done) {
                     var PART = {
-                        name:               'widget',
-                        catalog_number:     'W-123',
+                        name:               'widget-u',
+                        catalog_number:     'W-123.5',
                         components: [{part_id: PART_ID, info: {quantity: 1}}]
                     }
                     var conditions = {'components.part_id': PART_ID}
@@ -423,8 +530,8 @@ describe('MongoDBAdaptor', function() {
 
                 it('+ should replace an existing field in an existing element in an array of objects', function(done) {
                      var PART = {
-                         name:               'widget',
-                         catalog_number:     'W-123',
+                         name:               'widget-u',
+                         catalog_number:     'W-123.6',
                          components: [{part_id: PART_ID, info: {quantity: 1}}]
                      }
                      var conditions = {'components.part_id': PART_ID}
@@ -442,8 +549,8 @@ describe('MongoDBAdaptor', function() {
 
                 it('+ should remove an existing field from an existing element in the array', function(done) {
                      var PART = {
-                         name:               'widget',
-                         catalog_number:     'W-123',
+                         name:               'widget-u',
+                         catalog_number:     'W-123.7',
                          components: [{part_id: PART_ID, info: {quantity: 1}}]
                      }
                      var conditions = {'components.part_id': PART_ID}
@@ -458,8 +565,8 @@ describe('MongoDBAdaptor', function() {
 
                 it('- should not remove or delete an existing element of an array of simple types', function(done) {
                      var PART = {
-                         name:               'widget',
-                         catalog_number:     'W-123',
+                         name:               'widget-u',
+                         catalog_number:     'W-123.8',
                          notes:              [NOTE]
                      }
                      var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'notes', element_id: NOTE}
@@ -477,8 +584,8 @@ describe('MongoDBAdaptor', function() {
 
                 it('- should not remove or delete an existing element of an array of objects', function(done) {
                      var PART = {
-                         name:               'widget',
-                         catalog_number:     'W-123',
+                         name:               'widget-u',
+                         catalog_number:     'W-123.9',
                          components: [{part_id: PART_ID, info: {quantity: 1}}]
                      }
                      var conditions = {'components.part_id': PART_ID}
@@ -501,8 +608,8 @@ describe('MongoDBAdaptor', function() {
 
                 it('+ should create a new element in an array of simple types', function(done) {
                      var PART = {
-                         name:               'widget',
-                         catalog_number:     'W-123',
+                         name:               'widget-u',
+                         catalog_number:     'W-123.10',
                          notes:              [NOTE]
                      }
                      var ADDED_NOTE = 'compatible with both left- and right-widgets'
@@ -519,8 +626,8 @@ describe('MongoDBAdaptor', function() {
                 it('+ should create a new element in an array of objects', function(done) {
                      var COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}}
                      var PART = {
-                         name:              'widget',
-                         catalog_number:    'W-123',
+                         name:              'widget-u',
+                         catalog_number:    'W-123.11',
                          components:        [COMPONENT]
                      }
                      var ADDED_COMPONENT = {part_id: COMPONENT_PART_2_ID, info: {style: 'very stylish'}}
@@ -544,8 +651,8 @@ describe('MongoDBAdaptor', function() {
 
                 it('+ should remove an existing element from an array of simple types', function(done) {
                      var PART = {
-                         name:               'widget',
-                         catalog_number:     'W-123',
+                         name:               'widget-u',
+                         catalog_number:     'W-123.12',
                          notes:              [NOTE]
                      }
                      var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'remove', field: 'notes', element_id: NOTE}
@@ -559,8 +666,8 @@ describe('MongoDBAdaptor', function() {
                 it('+ should remove an existing element from an array of objects', function(done) {
                      var COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}}
                      var PART = {
-                         name:              'widget',
-                         catalog_number:    'W-123',
+                         name:              'widget-u',
+                         catalog_number:    'W-123.13',
                          components:        [COMPONENT]
                      }
                      var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'remove', field: 'components', key_field: 'part_id', element_id: COMPONENT_PART_ID}
