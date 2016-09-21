@@ -30,14 +30,12 @@
         "src/ts/*.ts",
         "test/ts/*.ts",
         "typings/index.d.ts",
-        "Database.d.ts",
         "MongoDBAdaptor.d.ts"
     ],
     "files": [
         "src/ts/MongoDBAdaptor.ts",
         "test/ts/MongoDBAdaptor.tests.ts",
         "typings/index.d.ts",
-        "Database.d.ts",
         "MongoDBAdaptor.d.ts"
     ],
     "exclude": [],

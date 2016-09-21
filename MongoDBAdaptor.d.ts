@@ -1,5 +1,5 @@
 import mongoose                         = require('mongoose')
-import Database                  = require('Database')
+import Database                         = require('document-database-if')
 
 
 export interface MongodbUpdateArgs {
@@ -8,17 +8,23 @@ export interface MongodbUpdateArgs {
 }
 
 
-export class MongoDBAdaptor implements Database.DocumentDatabase {
+export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
     static  createObjectId() : string 
     static isEmpty(obj): boolean
     static deepEqualObjOrMongo(lhs, rhs) : boolean
     static convertUpdateCommandToMongo(update : Database.UpdateFieldCommand) : MongodbUpdateArgs
     static convertUpdateCommandsToMongo(updates : Database.UpdateFieldCommand[]) : MongodbUpdateArgs[]
     constructor(typename : string, model : mongoose.Model<mongoose.Document>, done? : (error?: Error) => void)
-    create(obj : any) : Promise<any>
-    readById(id : String) : Promise<{elements: Object[]}>
-    read(conditions : any, fields? : any, sort?: any, cursor? : Database.DatabaseCursor) : Promise<any>
-    update(conditions : any, updates : Database.UpdateFieldCommand[], getOriginalDocument? : (doc : any) => void) : Promise<any>
-    delete(conditions : any, getOriginalDocument? : (doc : any) => void) : Promise<any>
+
+    create(obj : T) : Promise<T>
+    create(obj : T, done: (error: Error, result?: T) => void) : void
+    read(id : string) : Promise<T>
+    read(id : string, done: (error: Error, result?: T) => void) : void
+    update(conditions : Database.Conditions, updates: Database.UpdateFieldCommand[], getOriginalDocument?: (doc : T) => void) : Promise<T> 
+    update(conditions : Database.Conditions, updates: Database.UpdateFieldCommand[], getOriginalDocument: (doc : T) => void, done: (error: Error, result?: T) => void) : void
+    delete(conditions : Database.Conditions, getOriginalDocument?: (doc : T) => void) : Promise<void>
+    delete(conditions : Database.Conditions, getOriginalDocument: (doc : T) => void, done: (error: Error) => void) : void
+    find(conditions : Database.Conditions, fields?: Database.Fields, sort?: Database.Sort, cursor?: Database.Cursor) : Promise<T[]> 
+    find(conditions : Database.Conditions, fields: Database.Fields, sort: Database.Sort, cursor: Database.Cursor, done: (error: Error, result?: T[]) => void) : void
 }
 

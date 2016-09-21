@@ -19,6 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "configure-local": "github:psnider/configure-local",
+    "document-database-if": "github:psnider/document-database-if",
     "mongod-runner": "github:psnider/mongod-runner",
     "mongoose": "^4.6.0",
     "mongoose-connector": "github:psnider/mongoose-connector",

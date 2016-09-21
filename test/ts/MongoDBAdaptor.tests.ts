@@ -1,3 +1,8 @@
+// NOTE: these tests call the versions for the functions that return Promises,
+// as the Promise code wraps the callback versions,
+// and this way both types are tested.
+
+
 import chai                             = require('chai')
 var expect                              = chai.expect
 import fs                               = require('fs')
@@ -8,7 +13,7 @@ import path                             = require('path')
 import tmp                              = require('tmp')
 
 import configure                        = require('configure-local')
-import Database                         = require('Database')
+import Database                         = require('document-database-if')
 import MongodRunner                     = require('mongod-runner')
 import MongooseMgr                      = require('mongoose-connector')
 import {MongoDBAdaptor} from 'MongoDBAdaptor'
@@ -37,31 +42,61 @@ interface ConvertMongodbUpdateArgsTests {
 }
 
 
-var DETAILS_SCHEMA_DEF = {
-    quantity:           Number,
-    style:              String,
-    color:              String
+namespace Part {
+
+    interface Details {
+        quantity?:           number
+        style?:              string
+        color?:              string
+    }
+
+
+    var DETAILS_SCHEMA_DEF = {
+        quantity:           Number,
+        style:              String,
+        color:              String
+    }
+
+
+    interface Component {
+        part_id:            string  // The part ID in the database
+        info?:              Details
+    }
+
+
+    var COMPONENT_SCHEMA_DEF = {
+        part_id:            ObjectId,  // The part ID in the database
+        info:               DETAILS_SCHEMA_DEF
+    }
+
+
+    export interface Part {
+        _id?:                string
+        name:                string
+        description?:        string
+        catalog_number:      string
+        notes?:              [string]
+        details?:            Details
+        components?:         [Component]
+    }
+
+
+    var PART_SCHEMA_DEF = {
+        name:               String,
+        description:        String,
+        catalog_number:     String,
+        notes:              [String],
+        details:            DETAILS_SCHEMA_DEF,
+        components:         [COMPONENT_SCHEMA_DEF]
+    }
+
+    var SCHEMA = new mongoose.Schema(PART_SCHEMA_DEF)
+    export var Model = mongoose.model('Part', SCHEMA)
+
 }
 
 
-var COMPONENT_SCHEMA_DEF = {
-    part_id:            ObjectId,  // The part ID in the database
-    info:               DETAILS_SCHEMA_DEF
-}
 
-
-var PART_SCHEMA_DEF = {
-    name:               String,
-    description:        String,
-    catalog_number:     String,
-    notes:              [String],
-    details:            DETAILS_SCHEMA_DEF,
-    components:         [COMPONENT_SCHEMA_DEF]
-}
-
-
-var PART_SCHEMA = new mongoose.Schema(PART_SCHEMA_DEF)
-var PartModel = mongoose.model('Part', PART_SCHEMA)
 
 
 
@@ -143,7 +178,7 @@ describe('MongoDBAdaptor', function() {
     var spawned_mongod
     var tmp_dir
 
-    var PARTS_ADAPTOR= new MongoDBAdaptor('Part', PartModel, (error) => {if (error) {throw error}})
+    var PARTS_ADAPTOR = new MongoDBAdaptor<Part.Part>('Part', Part.Model, (error) => {if (error) {throw error}})
 
 
     before(function(done) {
@@ -286,7 +321,7 @@ describe('MongoDBAdaptor', function() {
 
     describe('create()', function() {
 
-        const PART = {
+        const PART: Part.Part = {
             name:               'widget-u',
             catalog_number:     'W-123-c'
         }
@@ -294,8 +329,7 @@ describe('MongoDBAdaptor', function() {
         it('+ should create a new object', function(done) {
             var create_promise = PARTS_ADAPTOR.create(PART)
             create_promise.then(
-                (result) => {
-                    var created_part = result.elements[0]
+                (created_part) => {
                     expect(created_part).to.not.be.eql(PART)
                     expect(created_part._id).to.exist
                     expect(created_part.name).to.equal(PART.name)
@@ -311,7 +345,7 @@ describe('MongoDBAdaptor', function() {
     })
 
 
-    describe('readById()', function() {
+    describe('read()', function() {
 
         const PART = {
             name:               'widget-r',
@@ -322,14 +356,13 @@ describe('MongoDBAdaptor', function() {
         it('+ should read a previously created object', function(done) {
             var create_promise = PARTS_ADAPTOR.create(PART)
             create_promise.then(
-                (result) => {
-                    var created_part = result.elements[0]
-                    var read_promise = PARTS_ADAPTOR.readById(created_part._id)
+                (created_part) => {
+                    var read_promise = PARTS_ADAPTOR.read(created_part._id)
                     read_promise.then(
-                        (result) => {
-                            expect(created_part).to.not.be.eql(PART)
-                            expect(created_part.name).to.equal(PART.name)
-                            expect(created_part.catalog_number).to.equal(PART.catalog_number)
+                        (read_part) => {
+                            expect(read_part).to.not.be.eql(PART)
+                            expect(read_part.name).to.equal(PART.name)
+                            expect(read_part.catalog_number).to.equal(PART.catalog_number)
                             done()
                         }
                     )
@@ -342,11 +375,10 @@ describe('MongoDBAdaptor', function() {
 
 
         it('+ should return no result for a non-existant object', function(done) {
-            var read_promise = PARTS_ADAPTOR.readById('ffffffffffffffffffffffff')
+            var read_promise = PARTS_ADAPTOR.read('ffffffffffffffffffffffff')
             read_promise.then(
                 (result) => {
-                    expect(result.elements).to.be.instanceof(Array)
-                    expect(result.elements).to.be.empty
+                    expect(result).to.not.exist
                     done()
                 },
                 (error) => {
@@ -357,66 +389,20 @@ describe('MongoDBAdaptor', function() {
     })
 
 
-    describe('delete()', function() {
-
-        const PART = {
-            name:               'widget-d',
-            catalog_number:     'W-002-d'
-        }
-
-
-        it('+ should delete a previously created object', function(done) {
-            var create_promise = PARTS_ADAPTOR.create(PART)
-            create_promise.then(
-                (result) => {
-                    var created_part = result.elements[0]
-                    var delete_promise = PARTS_ADAPTOR.delete(created_part.id)
-                    delete_promise.then(
-                        (result) => {
-                            expect(created_part).to.not.be.eql(PART)
-                            expect(created_part.name).to.equal(PART.name)
-                            expect(created_part.catalog_number).to.equal(PART.catalog_number)
-                        }
-                    ).then(
-                        (result) => {
-                            var read_promise = PARTS_ADAPTOR.readById(created_part._id)
-                            read_promise.then(
-                                (result) => {
-                                    expect(result.elements).to.be.instanceof(Array)
-                                    expect(result.elements).to.be.empty
-                                    done()
-                                },
-                                (error) => {
-                                    done(error)
-                                }
-                            )
-                        }
-                    )
-                },
-                (error) => {
-                    done(error)
-                }
-            )
-        })
-
-    })
-
-
     describe('update()', function() {
 
         function test_update(part, conditions, update_cmd: Database.UpdateFieldCommand, done, tests) {
             if (conditions == null)  conditions = {}
             var _id
-            function update(result) {
-                _id = result.elements[0]._id
+            function update(result: Part.Part) {
+                _id = result._id
                 conditions['_id'] = _id
                 return PARTS_ADAPTOR.update(conditions, [update_cmd])
             }
             var create_promise = PARTS_ADAPTOR.create(part)
             var update_promise = create_promise.then(update)
             update_promise.then(
-                (result) => {
-                    var updated_part = result.elements[0]
+                (updated_part) => {
                     expect(updated_part._id).to.equal(_id)
                     tests(updated_part)
                     done()
@@ -679,6 +665,92 @@ describe('MongoDBAdaptor', function() {
 
             })
 
+        })
+
+    })
+
+
+    describe('delete()', function() {
+
+        const PART = {
+            name:               'widget-d',
+            catalog_number:     'W-002-d'
+        }
+
+
+        it('+ should delete a previously created object', function(done) {
+            var create_promise = PARTS_ADAPTOR.create(PART)
+            create_promise.then(
+                (created_part) => {
+                    var delete_promise = PARTS_ADAPTOR.delete(created_part._id)
+                    delete_promise.then(
+                        (result) => {
+                            expect(created_part).to.not.be.eql(PART)
+                            expect(created_part.name).to.equal(PART.name)
+                            expect(created_part.catalog_number).to.equal(PART.catalog_number)
+                        }
+                    ).then(
+                        (result) => {
+                            var read_promise = PARTS_ADAPTOR.read(created_part._id)
+                            read_promise.then(
+                                (read_part) => {
+                                    expect(read_part).to.not.exist
+                                    done()
+                                },
+                                (error) => {
+                                    done(error)
+                                }
+                            )
+                        }
+                    )
+                },
+                (error) => {
+                    done(error)
+                }
+            )
+        })
+
+    })
+
+
+    describe('find()', function() {
+
+        const PART = {
+            name:               'widget-d',
+            catalog_number:     'W-002-d'
+        }
+
+
+        it('+ should delete a previously created object', function(done) {
+            var create_promise = PARTS_ADAPTOR.create(PART)
+            create_promise.then(
+                (created_part) => {
+                    var delete_promise = PARTS_ADAPTOR.delete(created_part._id)
+                    delete_promise.then(
+                        (result) => {
+                            expect(created_part).to.not.be.eql(PART)
+                            expect(created_part.name).to.equal(PART.name)
+                            expect(created_part.catalog_number).to.equal(PART.catalog_number)
+                        }
+                    ).then(
+                        (result) => {
+                            var read_promise = PARTS_ADAPTOR.read(created_part._id)
+                            read_promise.then(
+                                (read_part) => {
+                                    expect(read_part).to.not.exist
+                                    done()
+                                },
+                                (error) => {
+                                    done(error)
+                                }
+                            )
+                        }
+                    )
+                },
+                (error) => {
+                    done(error)
+                }
+            )
         })
 
     })

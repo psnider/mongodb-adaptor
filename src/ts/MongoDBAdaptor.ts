@@ -4,7 +4,7 @@ mongoose.Promise = global.Promise
 import pino                             = require('pino')
 
 import configure                        = require('configure-local')
-import Database                         = require('Database')
+import Database                         = require('document-database-if')
 import {MongodbUpdateArgs} from '../../MongoDBAdaptor'
 
 
@@ -17,7 +17,7 @@ var log = pino({name: 'MongoDBAdaptor'})
 
 // This adaptor converts application queries into Mongo queries
 // and the query results into application results, suitable for use by cscFramework
-export class MongoDBAdaptor implements Database.DocumentDatabase {
+export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
 
 
     static  createObjectId() : string {
@@ -217,68 +217,112 @@ export class MongoDBAdaptor implements Database.DocumentDatabase {
     }
 
 
-    // @return a Promise with the created element
-    create(obj : Object) : Promise<Object> {
-        return new Promise((resolve, reject) => {
-            var document : mongoose.Document = new this.model(obj)
-            document.save((error, element : mongoose.Document) => {
-                if (error != null) {
-                    log.error({function: 'MongoDBAdaptor.create', obj: obj, text: 'db save error', error: error})
-                    reject(error)
+    // @return a Promise with the created element, if there is no callback
+    create(obj: T, done?: (error: Error, result?: T) => void) : Promise<T> | void {
+        if (done) {
+            let document : mongoose.Document = new this.model(obj)
+            document.save((error, saved_doc: mongoose.Document) => {
+                let result: T
+                if (!error) {
+                    let marshalable_doc: T = <T>saved_doc.toObject()
+                    // TODO: perhaps toObject should call convertMongoIdsToStrings? 
+                    result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc)
                 } else {
-                    var obj = element.toObject()
-                    obj = MongoDBAdaptor.convertMongoIdsToStrings(obj)
-                    var result = {elements: [obj]}
+                    log.error({function: 'MongoDBAdaptor.create', obj: obj, text: 'db save error', error: error})
+                }
+                done(error, result)
+            })
+        } else {
+            return this.create_promisified(obj)
+        }
+    }
+
+
+    create_promisified(obj: T): Promise<T> {
+        return new Promise((resolve, reject) => {
+            this.create(obj, (error, result) => {
+                if (!error)  {
                     resolve(result)
+                } else {
+                    reject(error)
                 }
             })
         })
     }
 
 
-    // @return a Promise with the matching element
-    readById(id : String) : Promise<{elements: Object[]}> {
-        return new Promise((resolve, reject) => {
+    // @return a Promise with the matching element, if there is no callback
+    read(id : string, done?: (error: Error, result?: T) => void) : Promise<T> | void {
+        if (done) {
             var mongoose_query = this.model.findById(id)
             mongoose_query.lean().exec().then(
-                (doc: {}) => {
+                (doc: T) => {
                     MongoDBAdaptor.convertMongoIdsToStrings(doc)
-                    var result = (doc != null) ? [doc] : []
-                    resolve({elements: result})
+                    done(undefined, doc)
                 },
                 (error) => {
-                    reject(error)
+                    done(error)
                 }
             )
+        } else {
+            return this.read_promisified(id)
+        }
+    }
+
+
+    read_promisified(id : string): Promise<T> {
+        return new Promise((resolve, reject) => {
+            this.read(id, (error, result) => {
+                if (!error)  {
+                    resolve(result)
+                } else {
+                    reject(error)
+                }
+            })
         })
     }
 
 
     // @return a Promise with the matching elements
-    read(conditions : Object, fields? : Object, sort?: Object, cursor? : Database.DatabaseCursor) : Promise<{elements: Object[];}> {
-        return new Promise((resolve, reject) => {
+    find(conditions : Database.Conditions, fields?: Database.Fields, sort?: Database.Sort, cursor?: Database.Cursor, done?: (error: Error, result?: T[]) => void) : Promise<T[]> | void {
+        if (done) {
             var mongoose_query = this.model.find(conditions, fields, cursor)
             if (sort != null) {
                 mongoose_query.sort(sort)
             }
             mongoose_query.lean().exec().then(
-                (data: {}[]) => {
-                    data.forEach((element) => {
+                (elements: T[]) => {
+                    elements.forEach((element) => {
                         MongoDBAdaptor.convertMongoIdsToStrings(element)
                     })
-                    var result = {elements: data}
-                    resolve(result)
+                    done(undefined, elements)
                 },
                 (error) => {
-                    reject(error)
+                    done(error)
                 }
             )
+        } else {
+            return this.find_promisified(conditions, fields, sort, cursor)
+        }
+    }
+
+
+    find_promisified(conditions: Database.Conditions, fields?: Database.Fields, sort?: Database.Sort, cursor?: Database.Cursor): Promise<T[]> {
+        return new Promise((resolve, reject) => {
+            this.find(conditions, fields, sort, cursor, (error, result) => {
+                if (!error)  {
+                    resolve(result)
+                } else {
+                    reject(error)
+                }
+            })
         })
     }
 
 
+
     // @return a Promise with the updated elements
-    update(conditions : any, updates : Database.UpdateFieldCommand[], getOriginalDocument? : (doc : any) => void) : Promise<any> {
+    update(conditions: any, updates: Database.UpdateFieldCommand[], getOriginalDocument?: (doc: T) => void, done?: (error: Error, result?: T) => void) : Promise<T> | void {
         function getId(conditions) : string {
             if ('_id' in conditions) {
                 var condition = conditions._id
@@ -303,10 +347,11 @@ export class MongoDBAdaptor implements Database.DocumentDatabase {
                 return null
             }
         }
-        var readDoc : (_id) => Promise<any> = (_id) => {
-            return this.read({_id}).then(
+        var readDoc : (_id) => Promise<T> = (_id) => {
+            let promise = <Promise<T>>this.read(_id)
+            return promise.then(
                 (result) => {
-                    return result.elements[0]
+                    return result
                 }
             )
         }
@@ -332,11 +377,11 @@ export class MongoDBAdaptor implements Database.DocumentDatabase {
                 )
             })
         }
-        return new Promise((resolve, reject) => {
+        if (done) {
             var mongo_updates = MongoDBAdaptor.convertUpdateCommandsToMongo(updates)
             if (mongo_updates.length == 0) {
                 var error = new Error('no updates specified in update command for conditions=' + JSON.stringify(conditions))
-                reject(error)
+                done(error)
             } else {
                 var _id = getId(conditions)
                 var initial_doc_promise = getInitialDoc(_id)
@@ -365,33 +410,64 @@ export class MongoDBAdaptor implements Database.DocumentDatabase {
                 )
                 read_promise.then(
                     (doc) => {
-                        var response = {elements: [doc]}
-                        resolve(response)
+                        done(undefined, doc)
                     },
                     (error) => {
-                        reject(error)
+                        done(error)
                     }
                 )
             }
+        } else {
+            return this.update_promisified(conditions, updates, getOriginalDocument)
+        }
+    }
+
+
+    update_promisified(conditions: any, updates: Database.UpdateFieldCommand[], getOriginalDocument: (doc: T) => void): Promise<T> {
+        return new Promise((resolve, reject) => {
+            this.update(conditions, updates, getOriginalDocument, (error, result) => {
+                if (!error)  {
+                    resolve(result)
+                } else {
+                    reject(error)
+                }
+            })
         })
     }
 
 
     // @param id {string|ObjectId}
     // @return a Promise with the deleted elements
-    delete(conditions : any, getOriginalDocument? : (doc : any) => void) : Promise<any> {
-        return new Promise((resolve, reject) => {
+    delete(conditions : Database.Conditions, getOriginalDocument?: (doc : T) => void, done?: (error: Error) => void) : Promise<null> | void {
+        if (done) {
             var mongoose_query = this.model.remove(conditions)
             mongoose_query.lean().exec().then(
                 (data) => {
-                    resolve(data)
+                    done(undefined)
                 },
                 (error) => {
-                    reject(error)
+                    done(error)
                 }
             )
+        } else {
+            return this.delete_promisified(conditions, getOriginalDocument)
+        }
+    }
+
+
+    delete_promisified(conditions: any, getOriginalDocument: (doc: T) => void): Promise<null> {
+        return new Promise((resolve, reject) => {
+            this.delete(conditions, getOriginalDocument, (error) => {
+                if (!error)  {
+                    resolve(null)
+                } else {
+                    reject(error)
+                }
+            })
         })
     }
+
+    
 
 }
 
