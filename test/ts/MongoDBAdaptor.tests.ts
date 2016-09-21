@@ -716,34 +716,25 @@ describe('MongoDBAdaptor', function() {
     describe('find()', function() {
 
         const PART = {
-            name:               'widget-d',
-            catalog_number:     'W-002-d'
+            name:               'widget-f',
+            catalog_number:     'W-042-f'
         }
 
 
-        it('+ should delete a previously created object', function(done) {
+        it('+ should find an object with a matching name', function(done) {
             var create_promise = PARTS_ADAPTOR.create(PART)
             create_promise.then(
                 (created_part) => {
-                    var delete_promise = PARTS_ADAPTOR.delete(created_part._id)
-                    delete_promise.then(
-                        (result) => {
-                            expect(created_part).to.not.be.eql(PART)
-                            expect(created_part.name).to.equal(PART.name)
-                            expect(created_part.catalog_number).to.equal(PART.catalog_number)
-                        }
-                    ).then(
-                        (result) => {
-                            var read_promise = PARTS_ADAPTOR.read(created_part._id)
-                            read_promise.then(
-                                (read_part) => {
-                                    expect(read_part).to.not.exist
-                                    done()
-                                },
-                                (error) => {
-                                    done(error)
-                                }
-                            )
+                    const conditions = {name: PART.name}
+                    var find_promise = PARTS_ADAPTOR.find(conditions)
+                    find_promise.then(
+                        (found_parts) => {
+                            expect(found_parts).to.be.instanceof(Array)
+                            expect(found_parts).to.have.lengthOf(1)
+                            const found_part = found_parts[0]
+                            expect(found_part.name).to.equal(PART.name)
+                            expect(found_part.catalog_number).to.equal(PART.catalog_number)
+                            done()
                         }
                     )
                 },
