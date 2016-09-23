@@ -283,6 +283,46 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
     }
 
 
+    // TODO: obsolete this function, as all updates should be performed with update()
+    // @return a Promise with the created element, if there is no callback
+    replace(obj: T, done?: (error: Error, result?: T) => void) : Promise<T> | void {
+        if (done) {
+            this.model.findById(obj['_id'], function (err, document) {
+                // assume that all keys are present in obj
+                for (let key in obj) {
+                    document[key] = obj[key]
+                }
+                document.save((error, saved_doc: mongoose.Document) => {
+                    let result: T
+                    if (!error) {
+                        let marshalable_doc: T = <T>saved_doc.toObject()
+                        // TODO: perhaps toObject should call convertMongoIdsToStrings? 
+                        result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc)
+                    } else {
+                        log.error({function: 'MongoDBAdaptor.replace', obj: obj, text: 'db save error', error: error})
+                    }
+                    done(error, result)
+                })
+            })
+        } else {
+            return this.replace_promisified(obj)
+        }
+    }
+
+
+    replace_promisified(obj: T): Promise<T> {
+        return new Promise((resolve, reject) => {
+            this.replace(obj, (error, result) => {
+                if (!error)  {
+                    resolve(result)
+                } else {
+                    reject(error)
+                }
+            })
+        })
+    }
+
+
     // @return a Promise with the matching elements
     find(conditions : Database.Conditions, fields?: Database.Fields, sort?: Database.Sort, cursor?: Database.Cursor, done?: (error: Error, result?: T[]) => void) : Promise<T[]> | void {
         if (done) {

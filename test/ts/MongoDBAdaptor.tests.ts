@@ -389,6 +389,42 @@ describe('MongoDBAdaptor', function() {
     })
 
 
+    describe('replace()', function() {
+
+        const PART: Part.Part = {
+            name:               'widget-rep',
+            catalog_number:     'W-123-rep'
+        }
+
+        it('+ should replace an existing object', function(done) {
+            var create_promise = PARTS_ADAPTOR.create(PART)
+            create_promise.then(
+                (created_part) => {
+                    created_part.name = 'widget-replaced'
+                    created_part.catalog_number = 'W-123-replaced'
+                    var replace_promise = PARTS_ADAPTOR.replace(created_part)
+                    replace_promise.then(
+                        (replaced_part) => {
+                            expect(replaced_part).to.not.eql(created_part)
+                            expect(replaced_part.name).to.equal('widget-replaced')
+                            expect(replaced_part.catalog_number).to.equal('W-123-replaced')
+                            done()
+                        },
+                        (error) => {
+                            done(error)
+                        }
+                    )
+                    done()
+                },
+                (error) => {
+                    done(error)
+                }
+            )
+        })
+
+    })
+
+
     describe('update()', function() {
 
         function test_update(part, conditions, update_cmd: Database.UpdateFieldCommand, done, tests) {

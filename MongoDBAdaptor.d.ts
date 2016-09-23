@@ -18,15 +18,17 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
     static convertUpdateCommandsToMongo(updates : Database.UpdateFieldCommand[]) : MongodbUpdateArgs[]
     constructor(typename : string, model : mongoose.Model<mongoose.Document>, done? : (error?: Error) => void)
 
-    create(obj : T) : Promise<T>
-    create(obj : T, done: (error: Error, result?: T) => void) : void
+    create(obj: T): Promise<T>
+    create(obj: T, done: Database.CreateCallback<T>): void
     read(id : string) : Promise<T>
-    read(id : string, done: (error: Error, result?: T) => void) : void
-    update(conditions : Database.Conditions, updates: Database.UpdateFieldCommand[], getOriginalDocument?: (doc : T) => void) : Promise<T> 
-    update(conditions : Database.Conditions, updates: Database.UpdateFieldCommand[], getOriginalDocument: (doc : T) => void, done: (error: Error, result?: T) => void) : void
+    read(id : string, done: Database.ReadCallback<T>) : void
+    replace(obj: T) : Promise<T>
+    replace(obj: T, done: Database.ReplaceCallback<T>) : void
+    update(conditions : Database.Conditions, updates: Database.UpdateFieldCommand[], getOriginalDocument?: Database.GetOriginalDocumentCallback<T>) : Promise<T>
+    update(conditions : Database.Conditions, updates: Database.UpdateFieldCommand[], getOriginalDocument: Database.GetOriginalDocumentCallback<T>, done: Database.UpdateSingleCallback<T>) : void
     del(conditions : Database.Conditions, getOriginalDocument?: (doc : T) => void) : Promise<void>
-    del(conditions : Database.Conditions, getOriginalDocument: (doc : T) => void, done: (error: Error) => void) : void
+    del(conditions : Database.Conditions, getOriginalDocument: (doc : T) => void, done: Database.DeleteSingleCallback) : void
     find(conditions : Database.Conditions, fields?: Database.Fields, sort?: Database.Sort, cursor?: Database.Cursor) : Promise<T[]> 
-    find(conditions : Database.Conditions, fields: Database.Fields, sort: Database.Sort, cursor: Database.Cursor, done: (error: Error, result?: T[]) => void) : void
+    find(conditions : Database.Conditions, fields: Database.Fields, sort: Database.Sort, cursor: Database.Cursor, done: Database.FindCallback<T>) : void
 }
 
