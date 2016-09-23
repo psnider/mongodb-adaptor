@@ -670,7 +670,7 @@ describe('MongoDBAdaptor', function() {
     })
 
 
-    describe('delete()', function() {
+    describe('del()', function() {
 
         const PART = {
             name:               'widget-d',
@@ -682,8 +682,8 @@ describe('MongoDBAdaptor', function() {
             var create_promise = PARTS_ADAPTOR.create(PART)
             create_promise.then(
                 (created_part) => {
-                    var delete_promise = PARTS_ADAPTOR.delete(created_part._id)
-                    delete_promise.then(
+                    var del_promise = PARTS_ADAPTOR.del(created_part._id)
+                    del_promise.then(
                         (result) => {
                             expect(created_part).to.not.be.eql(PART)
                             expect(created_part.name).to.equal(PART.name)

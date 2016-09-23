@@ -8,6 +8,8 @@ export interface MongodbUpdateArgs {
 }
 
 
+
+
 export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
     static  createObjectId() : string 
     static isEmpty(obj): boolean
@@ -22,8 +24,8 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
     read(id : string, done: (error: Error, result?: T) => void) : void
     update(conditions : Database.Conditions, updates: Database.UpdateFieldCommand[], getOriginalDocument?: (doc : T) => void) : Promise<T> 
     update(conditions : Database.Conditions, updates: Database.UpdateFieldCommand[], getOriginalDocument: (doc : T) => void, done: (error: Error, result?: T) => void) : void
-    delete(conditions : Database.Conditions, getOriginalDocument?: (doc : T) => void) : Promise<void>
-    delete(conditions : Database.Conditions, getOriginalDocument: (doc : T) => void, done: (error: Error) => void) : void
+    del(conditions : Database.Conditions, getOriginalDocument?: (doc : T) => void) : Promise<void>
+    del(conditions : Database.Conditions, getOriginalDocument: (doc : T) => void, done: (error: Error) => void) : void
     find(conditions : Database.Conditions, fields?: Database.Fields, sort?: Database.Sort, cursor?: Database.Cursor) : Promise<T[]> 
     find(conditions : Database.Conditions, fields: Database.Fields, sort: Database.Sort, cursor: Database.Cursor, done: (error: Error, result?: T[]) => void) : void
 }

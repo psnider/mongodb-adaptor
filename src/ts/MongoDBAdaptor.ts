@@ -438,7 +438,7 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
 
     // @param id {string|ObjectId}
     // @return a Promise with the deleted elements
-    delete(conditions : Database.Conditions, getOriginalDocument?: (doc : T) => void, done?: (error: Error) => void) : Promise<null> | void {
+    del(conditions : Database.Conditions, getOriginalDocument?: (doc : T) => void, done?: (error: Error) => void) : Promise<null> | void {
         if (done) {
             var mongoose_query = this.model.remove(conditions)
             mongoose_query.lean().exec().then(
@@ -450,14 +450,14 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
                 }
             )
         } else {
-            return this.delete_promisified(conditions, getOriginalDocument)
+            return this.del_promisified(conditions, getOriginalDocument)
         }
     }
 
 
-    delete_promisified(conditions: any, getOriginalDocument: (doc: T) => void): Promise<null> {
+    del_promisified(conditions: any, getOriginalDocument: (doc: T) => void): Promise<null> {
         return new Promise((resolve, reject) => {
-            this.delete(conditions, getOriginalDocument, (error) => {
+            this.del(conditions, getOriginalDocument, (error) => {
                 if (!error)  {
                     resolve(null)
                 } else {
@@ -466,8 +466,6 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
             })
         })
     }
-
-    
 
 }
 
