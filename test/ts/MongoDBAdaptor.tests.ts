@@ -178,7 +178,7 @@ describe('MongoDBAdaptor', function() {
     var spawned_mongod
     var tmp_dir
 
-    var PARTS_ADAPTOR = new MongoDBAdaptor<Part.Part>('Part', Part.Model, (error) => {if (error) {throw error}})
+    var PARTS_ADAPTOR: MongoDBAdaptor<Part.Part> 
 
 
     before(function(done) {
@@ -187,21 +187,25 @@ describe('MongoDBAdaptor', function() {
         var db_path  = path.join(tmp_dir.name, 'data')
         var log_path = path.join(tmp_dir.name, 'log')
         spawned_mongod = MongodRunner.startMongod(PORT.toString(), db_path, log_path, function() {
-            function onError(error : Error) : void {
-                SHOULD_DELETE_RAMDISK = false
-            }
             var mongo_path = 'localhost:27016/test'
-            MongooseMgr.connect(mongo_path, onError, done)
+            PARTS_ADAPTOR = new MongoDBAdaptor<Part.Part>(mongo_path, Part.Model)
+            PARTS_ADAPTOR.connect((error) => {
+                done(error)
+            })
         })
     })
 
 
     after(function(done) {
-        MongooseMgr.disconnect(function() {
-            MongodRunner.stopMongod(spawned_mongod, function() {
-                tmp_dir.removeCallback()
-                done()
-            })
+        PARTS_ADAPTOR.disconnect((error) => {
+            if (!error) {
+                MongodRunner.stopMongod(spawned_mongod, () => {
+                    tmp_dir.removeCallback()
+                    done()
+                })
+            } else {
+                done(error)
+            }
         })
     })
 

@@ -6,6 +6,7 @@ import pino                             = require('pino')
 import configure                        = require('configure-local')
 import Database                         = require('document-database-if')
 import {MongodbUpdateArgs} from '../../MongoDBAdaptor'
+import {connect as mongoose_connect, disconnect as mongoose_disconnect} from 'mongoose-connector'
 
 
 var log = pino({name: 'MongoDBAdaptor'})
@@ -212,13 +213,64 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
     }
 
 
-    constructor(private typename : string, private model : mongoose.Model<mongoose.Document>, done? : (error?: Error) => void) {
-        if (done != null)  done()
+    mongodb_path: string
+    model: mongoose.Model<mongoose.Document>
+    db: MongoDBAdaptor<T>
+
+
+    constructor(mongodb_path: string, model: mongoose.Model<mongoose.Document>) {
+        this.mongodb_path = mongodb_path
+        this.model = model
+    }
+
+
+    connect(done?: Database.ErrorOnlyCallback): any {
+        if (done) {
+            var onError = (error) => {console.log(`mongoose_connect error=${error}`)}
+            mongoose_connect(this.mongodb_path, onError, done)
+        } else {
+            return this.promisify_connect()
+        }
+    }
+
+
+    promisify_connect(): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            this.connect((error) => {
+                if (!error) {
+                    resolve()
+                } else {
+                    reject(error)
+                }
+            })
+        })
+    }
+
+
+    disconnect(done?: Database.ErrorOnlyCallback): any {
+        if (done) {
+            mongoose_disconnect(done)
+        } else {
+            return this.promisify_disconnect()
+        }
+    }
+
+
+    promisify_disconnect(): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            this.connect((error) => {
+                if (!error) {
+                    resolve()
+                } else {
+                    reject(error)
+                }
+            })
+        })
     }
 
 
     // @return a Promise with the created element, if there is no callback
-    create(obj: T, done?: (error: Error, result?: T) => void) : Promise<T> | void {
+    create(obj: T, done?: Database.ObjectCallback<T>) : Promise<T> | void {
         if (done) {
             let document : mongoose.Document = new this.model(obj)
             document.save((error, saved_doc: mongoose.Document) => {
@@ -252,7 +304,7 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
 
 
     // @return a Promise with the matching element, if there is no callback
-    read(id : string, done?: (error: Error, result?: T) => void) : Promise<T> | void {
+    read(id : string, done?: Database.ObjectCallback<T>) : Promise<T> | void {
         if (done) {
             var mongoose_query = this.model.findById(id)
             mongoose_query.lean().exec().then(
@@ -285,7 +337,7 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
 
     // TODO: obsolete this function, as all updates should be performed with update()
     // @return a Promise with the created element, if there is no callback
-    replace(obj: T, done?: (error: Error, result?: T) => void) : Promise<T> | void {
+    replace(obj: T, done?: Database.ObjectCallback<T>) : Promise<T> | void {
         if (done) {
             this.model.findById(obj['_id'], function (err, document) {
                 // assume that all keys are present in obj
@@ -324,7 +376,7 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
 
 
     // @return a Promise with the matching elements
-    find(conditions : Database.Conditions, fields?: Database.Fields, sort?: Database.Sort, cursor?: Database.Cursor, done?: (error: Error, result?: T[]) => void) : Promise<T[]> | void {
+    find(conditions : Database.Conditions, fields?: Database.Fields, sort?: Database.Sort, cursor?: Database.Cursor, done?: Database.ArrayCallback<T>) : Promise<T[]> | void {
         if (done) {
             var mongoose_query = this.model.find(conditions, fields, cursor)
             if (sort != null) {
@@ -362,7 +414,7 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
 
 
     // @return a Promise with the updated elements
-    update(conditions: any, updates: Database.UpdateFieldCommand[], getOriginalDocument?: (doc: T) => void, done?: (error: Error, result?: T) => void) : Promise<T> | void {
+    update(conditions: any, updates: Database.UpdateFieldCommand[], getOriginalDocument?: Database.ObjectCallback<T>, done?: Database.ObjectCallback<T>) : Promise<T> | void {
         function getId(conditions) : string {
             if ('_id' in conditions) {
                 var condition = conditions._id
@@ -399,10 +451,12 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
             if (getOriginalDocument) {
                 return readDoc(_id).then(
                     (doc) => {
-                        getOriginalDocument(doc)
+                        getOriginalDocument(undefined, doc)
                         return doc
                     }
-                )
+                ).catch((error) => {
+                    getOriginalDocument(error)
+                })
             } else {
                 return Promise.resolve(null)
             }
@@ -463,7 +517,7 @@ export class MongoDBAdaptor<T> implements Database.DocumentDatabase<T> {
     }
 
 
-    update_promisified(conditions: any, updates: Database.UpdateFieldCommand[], getOriginalDocument: (doc: T) => void): Promise<T> {
+    update_promisified(conditions: any, updates: Database.UpdateFieldCommand[], getOriginalDocument: Database.ObjectCallback<T>): Promise<T> {
         return new Promise((resolve, reject) => {
             this.update(conditions, updates, getOriginalDocument, (error, result) => {
                 if (!error)  {
