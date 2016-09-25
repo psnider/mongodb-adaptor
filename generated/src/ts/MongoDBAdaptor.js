@@ -13,8 +13,8 @@ var MongoDBAdaptor = (function () {
         this.model = model;
     }
     MongoDBAdaptor.createObjectId = function () {
-        var id = new mongoose.Types.ObjectId;
-        return id.toHexString();
+        var _id = new mongoose.Types.ObjectId;
+        return _id.toHexString();
     };
     MongoDBAdaptor.isEmpty = function (obj) {
         return (Object.keys(obj).length === 0);
@@ -54,8 +54,8 @@ var MongoDBAdaptor = (function () {
             var rhs_keys = Object.keys(rhs);
             // check each key, because a missing key is equivalent to an empty value at an existing key
             return lhs_keys.every(function (key) {
-                if ((key === 'id') || (key === '_id')) {
-                    // ignore id fields
+                if (key === '_id') {
+                    // ignore _id fields, but compare id, as id is a user-defined field
                     return true;
                 }
                 else {
@@ -119,10 +119,10 @@ var MongoDBAdaptor = (function () {
             mongoose_connector_1.connect(this.mongodb_path, onError, done);
         }
         else {
-            return this.promisify_connect();
+            return this.connect_promisified();
         }
     };
-    MongoDBAdaptor.prototype.promisify_connect = function () {
+    MongoDBAdaptor.prototype.connect_promisified = function () {
         var _this = this;
         return new Promise(function (resolve, reject) {
             _this.connect(function (error) {
@@ -140,10 +140,10 @@ var MongoDBAdaptor = (function () {
             mongoose_connector_1.disconnect(done);
         }
         else {
-            return this.promisify_disconnect();
+            return this.disconnect_promisified();
         }
     };
-    MongoDBAdaptor.prototype.promisify_disconnect = function () {
+    MongoDBAdaptor.prototype.disconnect_promisified = function () {
         var _this = this;
         return new Promise(function (resolve, reject) {
             _this.connect(function (error) {
@@ -156,7 +156,8 @@ var MongoDBAdaptor = (function () {
             });
         });
     };
-    // @return a Promise with the created element, if there is no callback
+    // create(obj: T): Promise<T>
+    // create(obj: T, done: ObjectCallback<T>): void
     MongoDBAdaptor.prototype.create = function (obj, done) {
         if (done) {
             var document_1 = new this.model(obj);
@@ -190,25 +191,44 @@ var MongoDBAdaptor = (function () {
             });
         });
     };
-    // @return a Promise with the matching element, if there is no callback
-    MongoDBAdaptor.prototype.read = function (id, done) {
+    // read(_id: DatabaseID | DatabaseID[]) : Promise<T | T[]> 
+    // read(_id: DatabaseID | DatabaseID[], done: ObjectOrArrayCallback<T>) : void
+    MongoDBAdaptor.prototype.read = function (_id_or_ids, done) {
         if (done) {
-            var mongoose_query = this.model.findById(id);
-            mongoose_query.lean().exec().then(function (doc) {
-                MongoDBAdaptor.convertMongoIdsToStrings(doc);
-                done(undefined, doc);
+            var mongoose_query;
+            if (Array.isArray(_id_or_ids)) {
+                var _ids = _id_or_ids;
+                var mongoose_ids = _ids.map(function (_id) { return mongoose.Types.ObjectId.createFromHexString(_id); });
+                mongoose_query = this.model.find({
+                    '_id': { $in: mongoose_ids }
+                });
+            }
+            else {
+                var _id = _id_or_ids;
+                mongoose_query = this.model.findById(_id);
+            }
+            mongoose_query.lean().exec().then(function (result) {
+                if (Array.isArray(result)) {
+                    result.forEach(function (element) {
+                        MongoDBAdaptor.convertMongoIdsToStrings(element);
+                    });
+                }
+                else {
+                    MongoDBAdaptor.convertMongoIdsToStrings(result);
+                }
+                done(undefined, result);
             }, function (error) {
                 done(error);
             });
         }
         else {
-            return this.read_promisified(id);
+            return this.read_promisified(_id_or_ids);
         }
     };
-    MongoDBAdaptor.prototype.read_promisified = function (id) {
+    MongoDBAdaptor.prototype.read_promisified = function (_id_or_ids) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.read(id, function (error, result) {
+            _this.read(_id_or_ids, function (error, result) {
                 if (!error) {
                     resolve(result);
                 }
@@ -292,7 +312,7 @@ var MongoDBAdaptor = (function () {
         });
     };
     // @return a Promise with the updated elements
-    MongoDBAdaptor.prototype.update = function (conditions, updates, getOriginalDocument, done) {
+    MongoDBAdaptor.prototype.update = function (conditions, updates, done) {
         var _this = this;
         function getId(conditions) {
             if ('_id' in conditions) {
@@ -330,19 +350,6 @@ var MongoDBAdaptor = (function () {
                 return result;
             });
         };
-        var getInitialDoc = function (_id) {
-            if (getOriginalDocument) {
-                return readDoc(_id).then(function (doc) {
-                    getOriginalDocument(undefined, doc);
-                    return doc;
-                }).catch(function (error) {
-                    getOriginalDocument(error);
-                });
-            }
-            else {
-                return Promise.resolve(null);
-            }
-        };
         var chainPromise = function (serial_promise, mongo_update, mongoose_query) {
             return serial_promise.then(function () {
                 return mongoose_query.lean().exec().then(function (result) {
@@ -359,7 +366,6 @@ var MongoDBAdaptor = (function () {
             }
             else {
                 var _id = getId(conditions);
-                var initial_doc_promise = getInitialDoc(_id);
                 // apply the updates in the order they were given
                 var initial_value = {};
                 initial_value['MongoDBAdaptor.update.error'] = 'You should never see this!';
@@ -378,7 +384,7 @@ var MongoDBAdaptor = (function () {
                     serial_promise = chainPromise(serial_promise, mongo_update, mongoose_query);
                 }
                 // when the last resolves, read the latest document
-                var read_promise = Promise.all([initial_doc_promise, serial_promise]).then(function (result) {
+                var read_promise = serial_promise.then(function (result) {
                     return readDoc(_id);
                 });
                 read_promise.then(function (doc) {
@@ -389,13 +395,13 @@ var MongoDBAdaptor = (function () {
             }
         }
         else {
-            return this.update_promisified(conditions, updates, getOriginalDocument);
+            return this.update_promisified(conditions, updates);
         }
     };
-    MongoDBAdaptor.prototype.update_promisified = function (conditions, updates, getOriginalDocument) {
+    MongoDBAdaptor.prototype.update_promisified = function (conditions, updates) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.update(conditions, updates, getOriginalDocument, function (error, result) {
+            _this.update(conditions, updates, function (error, result) {
                 if (!error) {
                     resolve(result);
                 }
@@ -405,11 +411,11 @@ var MongoDBAdaptor = (function () {
             });
         });
     };
-    // @param id {string|ObjectId}
-    // @return a Promise with the deleted elements
-    MongoDBAdaptor.prototype.del = function (conditions, getOriginalDocument, done) {
+    // del(_id: DatabaseID) : Promise<void>
+    // del(_id: DatabaseID, done: ErrorOnlyCallback) : void
+    MongoDBAdaptor.prototype.del = function (_id, done) {
         if (done) {
-            var mongoose_query = this.model.remove(conditions);
+            var mongoose_query = this.model.remove({ _id: _id });
             mongoose_query.lean().exec().then(function (data) {
                 done(undefined);
             }, function (error) {
@@ -417,13 +423,13 @@ var MongoDBAdaptor = (function () {
             });
         }
         else {
-            return this.del_promisified(conditions, getOriginalDocument);
+            return this.del_promisified(_id);
         }
     };
-    MongoDBAdaptor.prototype.del_promisified = function (conditions, getOriginalDocument) {
+    MongoDBAdaptor.prototype.del_promisified = function (_id) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.del(conditions, getOriginalDocument, function (error) {
+            _this.del(_id, function (error) {
                 if (!error) {
                     resolve(null);
                 }

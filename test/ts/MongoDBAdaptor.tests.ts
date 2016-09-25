@@ -15,7 +15,6 @@ import tmp                              = require('tmp')
 import configure                        = require('configure-local')
 import Database                         = require('document-database-if')
 import MongodRunner                     = require('mongod-runner')
-import MongooseMgr                      = require('mongoose-connector')
 import {MongoDBAdaptor} from 'MongoDBAdaptor'
 
 
@@ -161,13 +160,7 @@ describe('deepEqualObjOrMongo', function() {
 
 describe('MongoDBAdaptor', function() {
 
-    var NAME = 'MongoDBAdaptor_test'
-    var SIZE_MB = 500
-    var RAM_DISK
-    var PORT = 27016
-    var SHOULD_DELETE_RAMDISK = true
-    var MONGO_PATH = 'localhost:' + PORT + '/' + NAME
-
+    var PORT = 27016  // one less than the default port
 
     var NOTE = 'dont use with anti-widgets!'
     var UPDATED_NOTE = 'It actually works with anti-widgets!'
@@ -182,11 +175,11 @@ describe('MongoDBAdaptor', function() {
 
 
     before(function(done) {
-        process.env['MONGO_PATH'] = MONGO_PATH
         tmp_dir = tmp.dirSync({unsafeCleanup: true})
         var db_path  = path.join(tmp_dir.name, 'data')
         var log_path = path.join(tmp_dir.name, 'log')
         spawned_mongod = MongodRunner.startMongod(PORT.toString(), db_path, log_path, function() {
+            // TODO: move to configuration
             var mongo_path = 'localhost:27016/test'
             PARTS_ADAPTOR = new MongoDBAdaptor<Part.Part>(mongo_path, Part.Model)
             PARTS_ADAPTOR.connect((error) => {
@@ -363,7 +356,7 @@ describe('MongoDBAdaptor', function() {
                 (created_part) => {
                     var read_promise = PARTS_ADAPTOR.read(created_part._id)
                     read_promise.then(
-                        (read_part) => {
+                        (read_part: Part.Part) => {
                             expect(read_part).to.not.be.eql(PART)
                             expect(read_part.name).to.equal(PART.name)
                             expect(read_part.catalog_number).to.equal(PART.catalog_number)
