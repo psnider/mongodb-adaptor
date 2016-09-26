@@ -14,7 +14,7 @@ import tmp                              = require('tmp')
 
 import configure                        = require('configure-local')
 import Database                         = require('document-database-if')
-import MongodRunner                     = require('mongod-runner')
+import {MongoDaemon} from 'mongod-runner'
 import {MongoDBAdaptor} from 'MongoDBAdaptor'
 
 
@@ -41,7 +41,7 @@ interface ConvertMongodbUpdateArgsTests {
 }
 
 
-namespace Part {
+namespace Parts {
 
     interface Details {
         quantity?:           number
@@ -93,9 +93,7 @@ namespace Part {
     export var Model = mongoose.model('Part', SCHEMA)
 
 }
-
-
-
+type Part = Parts.Part
 
 
 
@@ -168,23 +166,24 @@ describe('MongoDBAdaptor', function() {
     var COMPONENT_PART_ID = '123411111111111111111111'
     var COMPONENT_PART_2_ID = '123422222222222222222222'
 
-    var spawned_mongod
-    var tmp_dir
+    var mongo_daemon: MongoDaemon
 
-    var PARTS_ADAPTOR: MongoDBAdaptor<Part.Part> 
+    var PARTS_ADAPTOR: MongoDBAdaptor<Part> 
 
 
     before(function(done) {
-        tmp_dir = tmp.dirSync({unsafeCleanup: true})
-        var db_path  = path.join(tmp_dir.name, 'data')
-        var log_path = path.join(tmp_dir.name, 'log')
-        spawned_mongod = MongodRunner.startMongod(PORT.toString(), db_path, log_path, function() {
-            // TODO: move to configuration
-            var mongo_path = 'localhost:27016/test'
-            PARTS_ADAPTOR = new MongoDBAdaptor<Part.Part>(mongo_path, Part.Model)
-            PARTS_ADAPTOR.connect((error) => {
+        mongo_daemon = new MongoDaemon({port: PORT, use_tmp_dir: true, disable_logging: true})
+        mongo_daemon.start((error) => {
+            if (!error) {
+                // TODO: move to configuration
+                var mongo_path = `localhost:${PORT}/test`
+                PARTS_ADAPTOR = new MongoDBAdaptor<Part>(mongo_path, Parts.Model)
+                PARTS_ADAPTOR.connect((error) => {
+                    done(error)
+                })
+            } else {
                 done(error)
-            })
+            }
         })
     })
 
@@ -192,9 +191,8 @@ describe('MongoDBAdaptor', function() {
     after(function(done) {
         PARTS_ADAPTOR.disconnect((error) => {
             if (!error) {
-                MongodRunner.stopMongod(spawned_mongod, () => {
-                    tmp_dir.removeCallback()
-                    done()
+                mongo_daemon.stop((error) => {
+                    done(error)
                 })
             } else {
                 done(error)
@@ -318,7 +316,7 @@ describe('MongoDBAdaptor', function() {
 
     describe('create()', function() {
 
-        const PART: Part.Part = {
+        const PART: Part = {
             name:               'widget-u',
             catalog_number:     'W-123-c'
         }
@@ -356,7 +354,7 @@ describe('MongoDBAdaptor', function() {
                 (created_part) => {
                     var read_promise = PARTS_ADAPTOR.read(created_part._id)
                     read_promise.then(
-                        (read_part: Part.Part) => {
+                        (read_part: Part) => {
                             expect(read_part).to.not.be.eql(PART)
                             expect(read_part.name).to.equal(PART.name)
                             expect(read_part.catalog_number).to.equal(PART.catalog_number)
@@ -388,7 +386,7 @@ describe('MongoDBAdaptor', function() {
 
     describe('replace()', function() {
 
-        const PART: Part.Part = {
+        const PART: Part = {
             name:               'widget-rep',
             catalog_number:     'W-123-rep'
         }
@@ -427,7 +425,7 @@ describe('MongoDBAdaptor', function() {
         function test_update(part, conditions, update_cmd: Database.UpdateFieldCommand, done, tests) {
             if (conditions == null)  conditions = {}
             var _id
-            function update(result: Part.Part) {
+            function update(result: Part) {
                 _id = result._id
                 conditions['_id'] = _id
                 return PARTS_ADAPTOR.update(conditions, [update_cmd])
