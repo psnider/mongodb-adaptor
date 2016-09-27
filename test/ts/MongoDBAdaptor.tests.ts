@@ -16,7 +16,7 @@ import configure                        = require('configure-local')
 import Database                         = require('document-database-if')
 import {MongoDaemon} from 'mongod-runner'
 import {MongoDBAdaptor} from 'MongoDBAdaptor'
-
+import {test_create, test_read, test_replace, test_del, test_find} from './generic-db-tests'
 
 process.on('uncaughtException', function(error) {
   console.log('Found uncaughtException: ' + error)
@@ -153,8 +153,17 @@ describe('deepEqualObjOrMongo', function() {
     })
             
 })
-    
-    
+
+
+var next_part_number = 0
+function createNewPart(): Part {
+
+    return {
+        name:               'widget',
+        catalog_number:     `W-${next_part_number++}`
+    }
+}
+
 
 describe('MongoDBAdaptor', function() {
 
@@ -170,6 +179,7 @@ describe('MongoDBAdaptor', function() {
 
     var PARTS_ADAPTOR: MongoDBAdaptor<Part> 
 
+    function getPartsAdaptor(): MongoDBAdaptor<Part>  {return PARTS_ADAPTOR}
 
     before(function(done) {
         mongo_daemon = new MongoDaemon({port: PORT, use_tmp_dir: true, disable_logging: true})
@@ -315,108 +325,17 @@ describe('MongoDBAdaptor', function() {
 
 
     describe('create()', function() {
-
-        const PART: Part = {
-            name:               'widget-u',
-            catalog_number:     'W-123-c'
-        }
-
-        it('+ should create a new object', function(done) {
-            var create_promise = PARTS_ADAPTOR.create(PART)
-            create_promise.then(
-                (created_part) => {
-                    expect(created_part).to.not.be.eql(PART)
-                    expect(created_part._id).to.exist
-                    expect(created_part.name).to.equal(PART.name)
-                    expect(created_part.catalog_number).to.equal(PART.catalog_number)
-                    done()
-                },
-                (error) => {
-                    done(error)
-                }
-            )
-        })
-
+         test_create<Part>(getPartsAdaptor, createNewPart, ['name', 'catalog_number'])        
     })
 
 
     describe('read()', function() {
-
-        const PART = {
-            name:               'widget-r',
-            catalog_number:     'W-001-r'
-        }
-
-
-        it('+ should read a previously created object', function(done) {
-            var create_promise = PARTS_ADAPTOR.create(PART)
-            create_promise.then(
-                (created_part) => {
-                    var read_promise = PARTS_ADAPTOR.read(created_part._id)
-                    read_promise.then(
-                        (read_part: Part) => {
-                            expect(read_part).to.not.be.eql(PART)
-                            expect(read_part.name).to.equal(PART.name)
-                            expect(read_part.catalog_number).to.equal(PART.catalog_number)
-                            done()
-                        }
-                    )
-                },
-                (error) => {
-                    done(error)
-                }
-            )
-        })
-
-
-        it('+ should return no result for a non-existant object', function(done) {
-            var read_promise = PARTS_ADAPTOR.read('ffffffffffffffffffffffff')
-            read_promise.then(
-                (result) => {
-                    expect(result).to.not.exist
-                    done()
-                },
-                (error) => {
-                    done(error)
-                }
-            )
-        })
+         test_read<Part>(getPartsAdaptor, createNewPart, ['name', 'catalog_number'])        
     })
 
 
     describe('replace()', function() {
-
-        const PART: Part = {
-            name:               'widget-rep',
-            catalog_number:     'W-123-rep'
-        }
-
-        it('+ should replace an existing object', function(done) {
-            var create_promise = PARTS_ADAPTOR.create(PART)
-            create_promise.then(
-                (created_part) => {
-                    created_part.name = 'widget-replaced'
-                    created_part.catalog_number = 'W-123-replaced'
-                    var replace_promise = PARTS_ADAPTOR.replace(created_part)
-                    replace_promise.then(
-                        (replaced_part) => {
-                            expect(replaced_part).to.not.eql(created_part)
-                            expect(replaced_part.name).to.equal('widget-replaced')
-                            expect(replaced_part.catalog_number).to.equal('W-123-replaced')
-                            done()
-                        },
-                        (error) => {
-                            done(error)
-                        }
-                    )
-                    done()
-                },
-                (error) => {
-                    done(error)
-                }
-            )
-        })
-
+         test_replace<Part>(getPartsAdaptor, createNewPart, ['name', 'catalog_number'])        
     })
 
 
@@ -702,79 +621,13 @@ describe('MongoDBAdaptor', function() {
 
 
     describe('del()', function() {
-
-        const PART = {
-            name:               'widget-d',
-            catalog_number:     'W-002-d'
-        }
-
-
-        it('+ should delete a previously created object', function(done) {
-            var create_promise = PARTS_ADAPTOR.create(PART)
-            create_promise.then(
-                (created_part) => {
-                    var del_promise = PARTS_ADAPTOR.del(created_part._id)
-                    del_promise.then(
-                        (result) => {
-                            expect(created_part).to.not.be.eql(PART)
-                            expect(created_part.name).to.equal(PART.name)
-                            expect(created_part.catalog_number).to.equal(PART.catalog_number)
-                        }
-                    ).then(
-                        (result) => {
-                            var read_promise = PARTS_ADAPTOR.read(created_part._id)
-                            read_promise.then(
-                                (read_part) => {
-                                    expect(read_part).to.not.exist
-                                    done()
-                                },
-                                (error) => {
-                                    done(error)
-                                }
-                            )
-                        }
-                    )
-                },
-                (error) => {
-                    done(error)
-                }
-            )
-        })
-
+         test_del<Part>(getPartsAdaptor, createNewPart, ['name', 'catalog_number'])        
     })
 
 
     describe('find()', function() {
-
-        const PART = {
-            name:               'widget-f',
-            catalog_number:     'W-042-f'
-        }
-
-
-        it('+ should find an object with a matching name', function(done) {
-            var create_promise = PARTS_ADAPTOR.create(PART)
-            create_promise.then(
-                (created_part) => {
-                    const conditions = {name: PART.name}
-                    var find_promise = PARTS_ADAPTOR.find(conditions)
-                    find_promise.then(
-                        (found_parts) => {
-                            expect(found_parts).to.be.instanceof(Array)
-                            expect(found_parts).to.have.lengthOf(1)
-                            const found_part = found_parts[0]
-                            expect(found_part.name).to.equal(PART.name)
-                            expect(found_part.catalog_number).to.equal(PART.catalog_number)
-                            done()
-                        }
-                    )
-                },
-                (error) => {
-                    done(error)
-                }
-            )
-        })
-
+         test_find<Part>(getPartsAdaptor, createNewPart, 'catalog_number')        
     })
+
 
 })
