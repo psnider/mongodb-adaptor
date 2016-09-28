@@ -16,7 +16,7 @@ import configure                        = require('configure-local')
 import Database                         = require('document-database-if')
 import {MongoDaemon} from 'mongod-runner'
 import {MongoDBAdaptor} from 'MongoDBAdaptor'
-import {test_create, test_read, test_replace, test_del, test_find} from './generic-db-tests'
+import {Fieldnames, test_create, test_read, test_replace, test_del, test_update, test_find} from './generic-db-tests'
 
 process.on('uncaughtException', function(error) {
   console.log('Found uncaughtException: ' + error)
@@ -57,7 +57,7 @@ namespace Parts {
     }
 
 
-    interface Component {
+    export interface Component {
         part_id:            string  // The part ID in the database
         info?:              Details
     }
@@ -157,10 +157,20 @@ describe('deepEqualObjOrMongo', function() {
 
 var next_part_number = 0
 function createNewPart(): Part {
-
     return {
         name:               'widget',
-        catalog_number:     `W-${next_part_number++}`
+        catalog_number:     `W-${next_part_number++}`,
+        components:         [{part_id:  MongoDBAdaptor.createObjectId(), info: {quantity: 1}}]
+    }
+}
+function createNewPartComponent(): Parts.Component {
+    return {
+        part_id: MongoDBAdaptor.createObjectId(),
+        info: {
+            quantity: (next_part_number % 2),
+            style:    ((next_part_number % 2) == 0) ? 'old' : 'new',
+            color:    ((next_part_number % 2) == 0) ? 'green' : 'blue'
+        }
     }
 }
 
@@ -339,284 +349,23 @@ describe('MongoDBAdaptor', function() {
     })
 
 
-    describe('update()', function() {
 
-        function test_update(part, conditions, update_cmd: Database.UpdateFieldCommand, done, tests) {
-            if (conditions == null)  conditions = {}
-            var _id
-            function update(result: Part) {
-                _id = result._id
-                conditions['_id'] = _id
-                return PARTS_ADAPTOR.update(conditions, [update_cmd])
-            }
-            var create_promise = PARTS_ADAPTOR.create(part)
-            var update_promise = create_promise.then(update)
-            update_promise.then(
-                (updated_part) => {
-                    expect(updated_part._id).to.equal(_id)
-                    tests(updated_part)
-                    done()
-                },
-                (error) => {
-                    done(error)
+
+    describe('update()', function() {
+        var fieldnames: Fieldnames = {
+            top_level: {
+                populated_string: 'name',
+                unpopulated_string: 'description',
+                string_array: {name: 'notes'},
+                obj_array: {
+                    name: 'components',
+                    key_field: 'part_id',
+                    createElement: createNewPartComponent
                 }
-            )
+            }      
         }
 
-
-        describe('if selected item has a path without an array:', function() {
-
-            describe('cmd=set:', function() {
-
-                it('+ should replace an existing field in an object', function(done) {
-                    var PART = {
-                        name:               'widget-u',
-                        catalog_number:     'W-123.0'
-                    }
-                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'name', value: 'sideways widget'}
-                    test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                        expect(updated_part.name).to.equal('sideways widget')
-                    })
-                })
-
-
-                it('+ should create a non-existant field in an object', function(done) {
-                    var PART = {
-                        name:               'widget-u',
-                        catalog_number:     'W-123.1'
-                    }
-                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'description', value: 'Used when upright isnt right'}
-                    test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                        expect(updated_part.description).to.equal('Used when upright isnt right')
-                    })
-                })
-
-            })
-
-
-            describe('cmd=unset', function() {
-
-                it('+ should remove an existing field in an object', function(done) {
-                    var PART = {
-                        name:               'widget-u',
-                        catalog_number:     'W-123.2'
-                    }
-                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'name'}
-                    test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                        expect(updated_part.name).to.be.undefined
-                    })
-                })
-
-            })
-
-        })
-
-
-        describe('if selected item has a path with an array', function() {
-
-            describe('cmd=set', function() {
-
-                it('+ should replace an existing element in an array of simple types', function(done) {
-                    var PART = {
-                        name:               'widget-u',
-                        catalog_number:     'W-123.3',
-                        notes:              [NOTE]
-                    }
-                    var conditions = {notes: NOTE}
-                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'notes', element_id: NOTE, value: UPDATED_NOTE}
-                    test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
-                        expect(updated_part.notes.length).to.equal(1)
-                        expect(updated_part.notes[0]).to.equal(UPDATED_NOTE)
-                    })
-                })
-
-
-                it('+ should replace an existing element in an array of objects', function(done) {
-                    var PART = {
-                        name:               'widget-u',
-                        catalog_number:     'W-123.4',
-                        components: [{part_id: PART_ID, info: {quantity: 1}}]
-                    }
-                    var conditions = {'components.part_id': PART_ID}
-                    var REPLACED_COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}}
-                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, value: REPLACED_COMPONENT}
-                    // TODO: fix: for some crazy reason, this sequence is modifying REPLACED_COMPONENT
-                    test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
-                        expect(updated_part.components.length).to.equal(1)
-                        var component = updated_part.components[0]
-                        expect(component).to.deep.equal(REPLACED_COMPONENT)
-                    })
-                })
-
-
-                it('+ should create a new field in an existing element in an array of objects', function(done) {
-                    var PART = {
-                        name:               'widget-u',
-                        catalog_number:     'W-123.5',
-                        components: [{part_id: PART_ID, info: {quantity: 1}}]
-                    }
-                    var conditions = {'components.part_id': PART_ID}
-                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.color', value: 'bronze'}
-                    test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
-                        var component = updated_part.components[0]
-                        expect(component.info).to.deep.equal({color: 'bronze', quantity: 1})
-                    })
-                })
-
-
-                it('+ should replace an existing field in an existing element in an array of objects', function(done) {
-                     var PART = {
-                         name:               'widget-u',
-                         catalog_number:     'W-123.6',
-                         components: [{part_id: PART_ID, info: {quantity: 1}}]
-                     }
-                     var conditions = {'components.part_id': PART_ID}
-                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.quantity', value: 2}
-                     test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
-                         var component = updated_part.components[0]
-                         expect(component.info).to.deep.equal({quantity: 2})
-                     })
-                })
-
-            })
-
-
-            describe('cmd=unset ', function() {
-
-                it('+ should remove an existing field from an existing element in the array', function(done) {
-                     var PART = {
-                         name:               'widget-u',
-                         catalog_number:     'W-123.7',
-                         components: [{part_id: PART_ID, info: {quantity: 1}}]
-                     }
-                     var conditions = {'components.part_id': PART_ID}
-                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.quantity'}
-                     test_update(PART, conditions, UPDATE_CMD, done, (updated_part) => {
-                         var component = updated_part.components[0]
-                         expect(component.info).to.exist
-                         expect(component.info.quantity).to.be.undefined
-                     })
-                })
-
-
-                it('- should not remove or delete an existing element of an array of simple types', function(done) {
-                     var PART = {
-                         name:               'widget-u',
-                         catalog_number:     'W-123.8',
-                         notes:              [NOTE]
-                     }
-                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'notes', element_id: NOTE}
-                     test_update(PART, null, UPDATE_CMD, (error : Error) => {
-                        if (error != null) {
-                            expect(error.message).to.equal('cmd=unset not allowed on array without a subfield, use cmd=remove')
-                            done()
-                        } else {
-                            var error = new Error('unset unexpectedly succeeded')
-                            done(error)
-                        }
-                     }, () => {})
-                })
-
-
-                it('- should not remove or delete an existing element of an array of objects', function(done) {
-                     var PART = {
-                         name:               'widget-u',
-                         catalog_number:     'W-123.9',
-                         components: [{part_id: PART_ID, info: {quantity: 1}}]
-                     }
-                     var conditions = {'components.part_id': PART_ID}
-                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'components', key_field: 'part_id', element_id: PART_ID}
-                     test_update(PART, conditions, UPDATE_CMD, (error : Error) => {
-                        if (error != null) {
-                            expect(error.message).to.equal('cmd=unset not allowed on array without a subfield, use cmd=remove')
-                            done()
-                        } else {
-                            var error = new Error('unset unexpectedly succeeded')
-                            done(error)
-                        }
-                     }, () => {})
-                })
-
-            })
-
-
-            describe('cmd=insert', function() {
-
-                it('+ should create a new element in an array of simple types', function(done) {
-                     var PART = {
-                         name:               'widget-u',
-                         catalog_number:     'W-123.10',
-                         notes:              [NOTE]
-                     }
-                     var ADDED_NOTE = 'compatible with both left- and right-widgets'
-                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'insert', field: 'notes', value: ADDED_NOTE}
-                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                         var notes = updated_part.notes
-                         expect(notes.length).to.equal(2)
-                         expect(notes[0]).to.equal(NOTE)
-                         expect(notes[1]).to.equal(ADDED_NOTE)
-                     })
-                })
-
-
-                it('+ should create a new element in an array of objects', function(done) {
-                     var COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}}
-                     var PART = {
-                         name:              'widget-u',
-                         catalog_number:    'W-123.11',
-                         components:        [COMPONENT]
-                     }
-                     var ADDED_COMPONENT = {part_id: COMPONENT_PART_2_ID, info: {style: 'very stylish'}}
-                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'insert', field: 'components', value: ADDED_COMPONENT}
-                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                         var components = getOverTheNetworkObject(updated_part.components)
-                         expect(components.length).to.equal(2)
-                         // didn't compare entire component via deep.equal because of _id
-                         expect(components[0].part_id).to.equal(COMPONENT.part_id)
-                         expect(components[0].info).to.deep.equal(COMPONENT.info)
-                         expect(components[1].part_id).to.equal(ADDED_COMPONENT.part_id)
-                         expect(components[1].info).to.deep.equal(ADDED_COMPONENT.info)
-                     })
-
-                })
-
-            })
-
-
-            describe('cmd=remove', function() {
-
-                it('+ should remove an existing element from an array of simple types', function(done) {
-                     var PART = {
-                         name:               'widget-u',
-                         catalog_number:     'W-123.12',
-                         notes:              [NOTE]
-                     }
-                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'remove', field: 'notes', element_id: NOTE}
-                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                         var notes = updated_part.notes
-                         expect(notes.length).to.equal(0)
-                     })
-                })
-
-
-                it('+ should remove an existing element from an array of objects', function(done) {
-                     var COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}}
-                     var PART = {
-                         name:              'widget-u',
-                         catalog_number:    'W-123.13',
-                         components:        [COMPONENT]
-                     }
-                     var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'remove', field: 'components', key_field: 'part_id', element_id: COMPONENT_PART_ID}
-                     test_update(PART, null, UPDATE_CMD, done, (updated_part) => {
-                         var notes = updated_part.notes
-                         expect(notes.length).to.equal(0)
-                     })
-                })
-
-            })
-
-        })
-
+        test_update<Part>(getPartsAdaptor, createNewPart, fieldnames)
     })
 
 
@@ -628,6 +377,5 @@ describe('MongoDBAdaptor', function() {
     describe('find()', function() {
          test_find<Part>(getPartsAdaptor, createNewPart, 'catalog_number')        
     })
-
 
 })
