@@ -4,6 +4,35 @@ var expect                              = chai.expect
 import Database                         = require('document-database-if')
 
 
+// @return the element at given field path, e.g. "hat.size""
+function getValue(obj, fieldpath) {
+    var name_components = fieldpath.split('.');
+    for (var i in name_components) {
+        var name_component = name_components[i];
+        obj = obj[name_component];
+        if (obj == null)
+            return null;
+    }
+    return obj;
+}
+
+
+
+function getRandomValue(type: string): number | string {
+    var value: number | string = Math.random()
+    if (type === 'string') {
+        value = value.toString()
+    }
+    return value
+}
+
+
+
+function expectDBOjectToContainAllObjectFields(db_obj, obj) {
+    for (var key in obj) {
+        expect(obj[key]).to.deep.equal(db_obj[key])
+    }
+}
 
 // seem to need getDB to be dynamic, otherwise DocumentDatabase is undefined!
 export function test_create<T>(getDB: () => Database.DocumentDatabase<T>, createNewObject: () => T, fieldnames: string[]) {
@@ -106,6 +135,11 @@ export function test_replace<T>(getDB: () => Database.DocumentDatabase<T>, creat
 }
 
 // Any missing fields prevent any dependent tests from being run.
+export interface Field {
+    name: string 
+    type: 'number' | 'string'
+}
+
 export interface Fieldnames {
     top_level?: {
         // must refer to a top-level field that is not present and supports operator "+ 1" (either a string or a number)
@@ -118,7 +152,9 @@ export interface Fieldnames {
         obj_array?: {
             name: string
             key_field: string
-            createElement: () => {}
+            populated_field: Field
+            unpopulated_field: Field
+            createElement: () => {}   // 2 sequential calls must return different results
         }
     }
 }
@@ -225,7 +261,7 @@ export function test_update<T extends {_id?: string}>(getDB: () => Database.Docu
                         obj[string_array.name] = [original_value]
                         var conditions = {}
                         conditions[string_array.name] = original_value
-                        var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'notes', element_id: original_value, value: updated_value}
+                        var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: string_array.name, element_id: original_value, value: updated_value}
                         test_update(obj, conditions, UPDATE_CMD, done, (updated_obj) => {
                             expect(updated_obj[string_array.name].length).to.equal(1)
                             expect(updated_obj[string_array.name][0]).to.equal(updated_value)
@@ -256,174 +292,179 @@ export function test_update<T extends {_id?: string}>(getDB: () => Database.Docu
 
                 it('+ should create a new field in an existing element in an array of objects', function(done) {
                     var obj_array = fieldnames.top_level.obj_array
+                    var unpopulated_field = fieldnames.top_level.obj_array.unpopulated_field
                     var obj: T = createNewObject()
                     var original_first_element = obj[obj_array.name][0]
                     var original_element_id = original_first_element[obj_array.key_field]
                     var path = `${obj_array.name}.${obj_array.key_field}`
                     var conditions = {}
                     conditions[path] = original_element_id
-                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: obj_array.name, key_field: obj_array.key_field, element_id: original_element_id, subfield: 'info.color', value: 'bronze'}
+                    var value = getRandomValue(unpopulated_field.type)
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: obj_array.name, key_field: obj_array.key_field, element_id: original_element_id, subfield: unpopulated_field.name, value}
                     test_update(obj, conditions, UPDATE_CMD, done, (updated_obj) => {
                         var component = updated_obj.components[0]
-                        expect(component.info).to.deep.equal({color: 'bronze', quantity: 1})
+                        var updated_value = getValue(component, unpopulated_field.name)
+                        expect(updated_value).to.equal(value)
                     })
                 })
 
 
-//                 it.only('+ should replace an existing field in an existing element in an array of objects', function(done) {
-//                         var PART = {
-//                             name:               'widget-u',
-//                             catalog_number:     'W-123.6',
-//                             components: [{part_id: PART_ID, info: {quantity: 1}}]
-//                         }
-//                         var conditions = {'components.part_id': PART_ID}
-//                         var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.quantity', value: 2}
-// console.log(`obj=${JSON.stringify(obj)}`)
-// console.log(`conditions=${JSON.stringify(conditions)}`)
-// console.log(`UPDATE_CMD=${JSON.stringify(UPDATE_CMD)}`)
-//                         test_update(PART, conditions, UPDATE_CMD, done, (updated_obj) => {
-// console.log(`updated_obj=${JSON.stringify(updated_obj)}`)
-//                             var component = updated_obj.components[0]
-//                             expect(component.info).to.deep.equal({quantity: 2})
-//                         })
-//                 })
+                it('+ should replace an existing field in an existing element in an array of objects', function(done) {
+                    var obj_array = fieldnames.top_level.obj_array
+                    var populated_field = fieldnames.top_level.obj_array.populated_field
+                    var obj: T = createNewObject()
+                    var original_first_element = obj[obj_array.name][0]
+                    var original_element_id = original_first_element[obj_array.key_field]
+                    var path = `${obj_array.name}.${obj_array.key_field}`
+                    var conditions = {}
+                    conditions[path] = original_element_id
+                    var replacement_obj: T = createNewObject()
+                    var value = getValue(replacement_obj[obj_array.name][0], populated_field.name)
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'set', field: obj_array.name, key_field: obj_array.key_field, element_id: original_element_id, subfield: populated_field.name, value}
+                    test_update(obj, conditions, UPDATE_CMD, done, (updated_obj) => {
+                        var component = updated_obj.components[0]
+                        var updated_value = getValue(component, populated_field.name)
+                        expect(updated_value).to.equal(value)
+                    })
+                })
             
             })
 
 
-            // describe('cmd=unset ', function() {
+            describe('cmd=unset ', function() {
 
-            //     it('+ should remove an existing field from an existing element in the array', function(done) {
-            //             var PART = {
-            //                 name:               'widget-u',
-            //                 catalog_number:     'W-123.7',
-            //                 components: [{part_id: PART_ID, info: {quantity: 1}}]
-            //             }
-            //             var conditions = {'components.part_id': PART_ID}
-            //             var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'components', key_field: 'part_id', element_id: PART_ID, subfield: 'info.quantity'}
-            //             test_update(PART, conditions, UPDATE_CMD, done, (updated_obj) => {
-            //                 var component = updated_obj.components[0]
-            //                 expect(component.info).to.exist
-            //                 expect(component.info.quantity).to.be.undefined
-            //             })
-            //     })
-
-
-            //     it('- should not remove or delete an existing element of an array of simple types', function(done) {
-            //             var PART = {
-            //                 name:               'widget-u',
-            //                 catalog_number:     'W-123.8',
-            //                 notes:              [NOTE]
-            //             }
-            //             var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'notes', element_id: NOTE}
-            //             test_update(PART, null, UPDATE_CMD, (error : Error) => {
-            //             if (error != null) {
-            //                 expect(error.message).to.equal('cmd=unset not allowed on array without a subfield, use cmd=remove')
-            //                 done()
-            //             } else {
-            //                 var error = new Error('unset unexpectedly succeeded')
-            //                 done(error)
-            //             }
-            //             }, () => {})
-            //     })
+                it('+ should remove an existing field from an existing element in the array', function(done) {
+                    var obj_array = fieldnames.top_level.obj_array
+                    var populated_field = fieldnames.top_level.obj_array.populated_field
+                    var obj: T = createNewObject()
+                    var original_first_element = obj[obj_array.name][0]
+                    var original_element_id = original_first_element[obj_array.key_field]
+                    var path = `${obj_array.name}.${obj_array.key_field}`
+                    var conditions = {}
+                    conditions[path] = original_element_id
+                    var replacement_obj: T = createNewObject()
+                    var value = getValue(replacement_obj[obj_array.name][0], populated_field.name)
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: obj_array.name, key_field: obj_array.key_field, element_id: original_element_id, subfield: populated_field.name}
+                    test_update(obj, conditions, UPDATE_CMD, done, (updated_obj) => {
+                        var component = updated_obj.components[0]
+                        expect(component.info).to.exist
+                        expect(component.info.quantity).to.be.undefined
+                    })
+                })
 
 
-            //     it('- should not remove or delete an existing element of an array of objects', function(done) {
-            //             var PART = {
-            //                 name:               'widget-u',
-            //                 catalog_number:     'W-123.9',
-            //                 components: [{part_id: PART_ID, info: {quantity: 1}}]
-            //             }
-            //             var conditions = {'components.part_id': PART_ID}
-            //             var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: 'components', key_field: 'part_id', element_id: PART_ID}
-            //             test_update(PART, conditions, UPDATE_CMD, (error : Error) => {
-            //             if (error != null) {
-            //                 expect(error.message).to.equal('cmd=unset not allowed on array without a subfield, use cmd=remove')
-            //                 done()
-            //             } else {
-            //                 var error = new Error('unset unexpectedly succeeded')
-            //                 done(error)
-            //             }
-            //             }, () => {})
-            //     })
-
-            // })
+                it('- should not remove or delete an existing element of an array of simple types', function(done) {
+                    var string_array = fieldnames.top_level.string_array
+                    var obj: T = createNewObject()
+                    const original_value = 'for all uses'
+                    obj[string_array.name] = [original_value]
+                    var conditions = {}
+                    conditions[string_array.name] = original_value
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: string_array.name, element_id: original_value}
+                    test_update(obj, conditions, UPDATE_CMD, (error : Error) => {
+                        if (error != null) {
+                            expect(error.message).to.equal('cmd=unset not allowed on array without a subfield, use cmd=remove')
+                            done()
+                        } else {
+                            var error = new Error('unset unexpectedly succeeded')
+                            done(error)
+                        }
+                    }, () => {/* no tests */})
+                })
 
 
-            // describe('cmd=insert', function() {
+                it('- should not remove or delete an existing element of an array of objects', function(done) {
+                    var obj_array = fieldnames.top_level.obj_array
+                    var obj: T = createNewObject()
+                    const original_first_element = obj[obj_array.name][0]
+                    var original_element_id = original_first_element[obj_array.key_field]
+                    var path = `${obj_array.name}.${obj_array.key_field}`
+                    var conditions = {}
+                    conditions[path] = original_element_id
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'unset', field: obj_array.name, key_field: obj_array.key_field, element_id: original_element_id}
+                    test_update(obj, conditions, UPDATE_CMD, (error : Error) => {
+                        if (error != null) {
+                            expect(error.message).to.equal('cmd=unset not allowed on array without a subfield, use cmd=remove')
+                            done()
+                        } else {
+                            var error = new Error('unset unexpectedly succeeded')
+                            done(error)
+                        }
+                    }, () => {/* no tests */})
+                })
 
-            //     it('+ should create a new element in an array of simple types', function(done) {
-            //             var PART = {
-            //                 name:               'widget-u',
-            //                 catalog_number:     'W-123.10',
-            //                 notes:              [NOTE]
-            //             }
-            //             var ADDED_NOTE = 'compatible with both left- and right-widgets'
-            //             var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'insert', field: 'notes', value: ADDED_NOTE}
-            //             test_update(PART, null, UPDATE_CMD, done, (updated_obj) => {
-            //                 var notes = updated_obj.notes
-            //                 expect(notes.length).to.equal(2)
-            //                 expect(notes[0]).to.equal(NOTE)
-            //                 expect(notes[1]).to.equal(ADDED_NOTE)
-            //             })
-            //     })
-
-
-            //     it('+ should create a new element in an array of objects', function(done) {
-            //             var COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}}
-            //             var PART = {
-            //                 name:              'widget-u',
-            //                 catalog_number:    'W-123.11',
-            //                 components:        [COMPONENT]
-            //             }
-            //             var ADDED_COMPONENT = {part_id: COMPONENT_PART_2_ID, info: {style: 'very stylish'}}
-            //             var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'insert', field: 'components', value: ADDED_COMPONENT}
-            //             test_update(PART, null, UPDATE_CMD, done, (updated_obj) => {
-            //                 var components = getOverTheNetworkObject(updated_obj.components)
-            //                 expect(components.length).to.equal(2)
-            //                 // didn't compare entire component via deep.equal because of _id
-            //                 expect(components[0].part_id).to.equal(COMPONENT.part_id)
-            //                 expect(components[0].info).to.deep.equal(COMPONENT.info)
-            //                 expect(components[1].part_id).to.equal(ADDED_COMPONENT.part_id)
-            //                 expect(components[1].info).to.deep.equal(ADDED_COMPONENT.info)
-            //             })
-
-            //     })
-
-            // })
+            })
 
 
-            // describe('cmd=remove', function() {
+            describe('cmd=insert', function() {
 
-            //     it('+ should remove an existing element from an array of simple types', function(done) {
-            //             var PART = {
-            //                 name:               'widget-u',
-            //                 catalog_number:     'W-123.12',
-            //                 notes:              [NOTE]
-            //             }
-            //             var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'remove', field: 'notes', element_id: NOTE}
-            //             test_update(PART, null, UPDATE_CMD, done, (updated_obj) => {
-            //                 var notes = updated_obj.notes
-            //                 expect(notes.length).to.equal(0)
-            //             })
-            //     })
+                it('+ should create a new element in an array of simple types', function(done) {
+                    var string_array = fieldnames.top_level.string_array
+                    var obj: T = createNewObject()
+                    const original_value = getRandomValue('string')
+                    obj[string_array.name] = [original_value]
+                    var conditions = {}
+                    conditions[string_array.name] = original_value
+                    const additional_value = getRandomValue('string')
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'insert', field: string_array.name, value: additional_value}
+                    test_update(obj, conditions, UPDATE_CMD, done, (updated_obj) => {
+                        var array = updated_obj[string_array.name]
+                        expect(array.length).to.equal(2)
+                        expect(array[0]).to.equal(original_value)
+                        expect(array[1]).to.equal(additional_value)
+                    })
+                })
 
 
-            //     it('+ should remove an existing element from an array of objects', function(done) {
-            //             var COMPONENT = {part_id: COMPONENT_PART_ID, info: {quantity: 1}}
-            //             var PART = {
-            //                 name:              'widget-u',
-            //                 catalog_number:    'W-123.13',
-            //                 components:        [COMPONENT]
-            //             }
-            //             var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'remove', field: 'components', key_field: 'part_id', element_id: COMPONENT_PART_ID}
-            //             test_update(PART, null, UPDATE_CMD, done, (updated_obj) => {
-            //                 var notes = updated_obj.notes
-            //                 expect(notes.length).to.equal(0)
-            //             })
-            //     })
+                it('+ should create a new element in an array of objects', function(done) {
+                    var obj_array = fieldnames.top_level.obj_array
+                    var obj: T = createNewObject()
+                    const original_first_element = obj[obj_array.name][0]
+                    var original_element_id = original_first_element[obj_array.key_field]
+                    var path = `${obj_array.name}.${obj_array.key_field}`
+                    var conditions = {}
+                    conditions[path] = original_element_id
+                    var added_element = obj_array.createElement()
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'insert', field: obj_array.name, value: added_element}
+                    test_update(obj, conditions, UPDATE_CMD, done, (updated_obj) => {
+                        var array = updated_obj[obj_array.name]
+                        expect(array).to.have.lengthOf(2)
+                        // didn't compare entire component via deep.equal because of _id
+                        expectDBOjectToContainAllObjectFields(array[0], original_first_element)
+                        expectDBOjectToContainAllObjectFields(array[1], added_element)
+                    })
+                })
 
-            // })
+            })
+
+
+            describe('cmd=remove', function() {
+
+                it('+ should remove an existing element from an array of simple types', function(done) {
+                    var string_array = fieldnames.top_level.string_array
+                    var obj: T = createNewObject()
+                    expect(obj[string_array.name]).to.have.lengthOf(1)
+                    var original_value = obj[string_array.name][0]
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'remove', field: string_array.name, element_id: original_value}
+                    test_update(obj, undefined, UPDATE_CMD, done, (updated_obj) => {
+                        expect(updated_obj[string_array.name]).to.have.lengthOf(0)
+                    })
+                })
+
+
+                it('+ should remove an existing element from an array of objects', function(done) {
+                    var obj_array = fieldnames.top_level.obj_array
+                    var obj: T = createNewObject()
+                    expect(obj[obj_array.name]).to.have.lengthOf(1)
+                    const first_element = obj[obj_array.name][0]
+                    var element_id = first_element[obj_array.key_field]
+                    var UPDATE_CMD : Database.UpdateFieldCommand = {cmd: 'remove', field: obj_array.name, key_field: obj_array.key_field, element_id}
+                        test_update(obj, null, UPDATE_CMD, done, (updated_obj) => {
+                            expect(updated_obj[obj_array.name]).to.have.lengthOf(0)
+                        })
+                })
+
+            })
 
         })
 

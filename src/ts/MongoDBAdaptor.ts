@@ -20,7 +20,6 @@ var log = pino({name: 'MongoDBAdaptor'})
 // and the query results into application results, suitable for use by cscFramework
 export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
 
-
     static  createObjectId() : string {
         var _id = new mongoose.Types.ObjectId
         return _id.toHexString()

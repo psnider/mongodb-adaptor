@@ -43,7 +43,7 @@ interface ConvertMongodbUpdateArgsTests {
 
 namespace Parts {
 
-    interface Details {
+    export interface Details {
         quantity?:           number
         style?:              string
         color?:              string
@@ -157,10 +157,12 @@ describe('deepEqualObjOrMongo', function() {
 
 var next_part_number = 0
 function createNewPart(): Part {
+    next_part_number++
     return {
         name:               'widget',
-        catalog_number:     `W-${next_part_number++}`,
-        components:         [{part_id:  MongoDBAdaptor.createObjectId(), info: {quantity: 1}}]
+        catalog_number:     `W-${next_part_number}`,
+        notes:              ['all purpose'],
+        components:         [createNewPartComponent()]
     }
 }
 function createNewPartComponent(): Parts.Component {
@@ -168,8 +170,7 @@ function createNewPartComponent(): Parts.Component {
         part_id: MongoDBAdaptor.createObjectId(),
         info: {
             quantity: (next_part_number % 2),
-            style:    ((next_part_number % 2) == 0) ? 'old' : 'new',
-            color:    ((next_part_number % 2) == 0) ? 'green' : 'blue'
+            style:    ((next_part_number % 2) == 0) ? 'old' : 'new'
         }
     }
 }
@@ -360,6 +361,8 @@ describe('MongoDBAdaptor', function() {
                 obj_array: {
                     name: 'components',
                     key_field: 'part_id',
+                    populated_field: {name: 'info.quantity', type: 'number'},
+                    unpopulated_field: {name: 'info.color', type: 'string'},
                     createElement: createNewPartComponent
                 }
             }      
