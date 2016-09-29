@@ -34,7 +34,6 @@
     ],
     "files": [
         "src/ts/MongoDBAdaptor.ts",
-        "test/ts/generic-db-tests.ts",
         "test/ts/MongoDBAdaptor.tests.ts",
         "typings/index.d.ts",
         "MongoDBAdaptor.d.ts"
