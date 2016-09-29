@@ -160,19 +160,24 @@ var MongoDBAdaptor = (function () {
     // create(obj: T, done: ObjectCallback<T>): void
     MongoDBAdaptor.prototype.create = function (obj, done) {
         if (done) {
-            var document_1 = new this.model(obj);
-            document_1.save(function (error, saved_doc) {
-                var result;
-                if (!error) {
-                    var marshalable_doc = saved_doc.toObject();
-                    // TODO: perhaps toObject should call convertMongoIdsToStrings? 
-                    result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc);
-                }
-                else {
-                    log.error({ function: 'MongoDBAdaptor.create', obj: obj, text: 'db save error', error: error });
-                }
-                done(error, result);
-            });
+            if (obj['_id']) {
+                done(new Error('_id isnt allowed for create'));
+            }
+            else {
+                var document_1 = new this.model(obj);
+                document_1.save(function (error, saved_doc) {
+                    var result;
+                    if (!error) {
+                        var marshalable_doc = saved_doc.toObject();
+                        // TODO: perhaps toObject should call convertMongoIdsToStrings? 
+                        result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc);
+                    }
+                    else {
+                        log.error({ function: 'MongoDBAdaptor.create', obj: obj, text: 'db save error', error: error });
+                    }
+                    done(error, result);
+                });
+            }
         }
         else {
             return this.create_promisified(obj);
@@ -203,23 +208,28 @@ var MongoDBAdaptor = (function () {
                     '_id': { $in: mongoose_ids }
                 });
             }
-            else {
+            else if ((typeof _id_or_ids == 'string') && (_id_or_ids.length > 0)) {
                 var _id = _id_or_ids;
                 mongoose_query = this.model.findById(_id);
             }
-            mongoose_query.lean().exec().then(function (result) {
-                if (Array.isArray(result)) {
-                    result.forEach(function (element) {
-                        MongoDBAdaptor.convertMongoIdsToStrings(element);
-                    });
-                }
-                else {
-                    MongoDBAdaptor.convertMongoIdsToStrings(result);
-                }
-                done(undefined, result);
-            }, function (error) {
-                done(error);
-            });
+            if (mongoose_query) {
+                mongoose_query.lean().exec().then(function (result) {
+                    if (Array.isArray(result)) {
+                        result.forEach(function (element) {
+                            MongoDBAdaptor.convertMongoIdsToStrings(element);
+                        });
+                    }
+                    else {
+                        MongoDBAdaptor.convertMongoIdsToStrings(result);
+                    }
+                    done(undefined, result);
+                }, function (error) {
+                    done(error);
+                });
+            }
+            else {
+                done(new Error('_id is invalid'));
+            }
         }
         else {
             return this.read_promisified(_id_or_ids);

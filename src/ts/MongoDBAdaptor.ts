@@ -272,18 +272,22 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
     // create(obj: T, done: ObjectCallback<T>): void
     create(obj: T, done?: ObjectCallback<T>) : Promise<T> | void {
         if (done) {
-            let document : mongoose.Document = new this.model(obj)
-            document.save((error, saved_doc: mongoose.Document) => {
-                let result: T
-                if (!error) {
-                    let marshalable_doc: T = <T>saved_doc.toObject()
-                    // TODO: perhaps toObject should call convertMongoIdsToStrings? 
-                    result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc)
-                } else {
-                    log.error({function: 'MongoDBAdaptor.create', obj: obj, text: 'db save error', error: error})
-                }
-                done(error, result)
-            })
+            if (obj['_id']) {
+                done(new Error('_id isnt allowed for create'))
+            } else {
+                let document : mongoose.Document = new this.model(obj)
+                document.save((error, saved_doc: mongoose.Document) => {
+                    let result: T
+                    if (!error) {
+                        let marshalable_doc: T = <T>saved_doc.toObject()
+                        // TODO: perhaps toObject should call convertMongoIdsToStrings? 
+                        result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc)
+                    } else {
+                        log.error({function: 'MongoDBAdaptor.create', obj: obj, text: 'db save error', error: error})
+                    }
+                    done(error, result)
+                })
+            }
         } else {
             return this.create_promisified(obj)
         }
@@ -314,25 +318,30 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
                 mongoose_query = this.model.find({
                     '_id': { $in: mongoose_ids}
                 });
-            } else {
+            } else if ((typeof _id_or_ids == 'string') && (_id_or_ids.length > 0)){
                 let _id = <DatabaseID>_id_or_ids
                 mongoose_query = this.model.findById(_id)
             }
-            mongoose_query.lean().exec().then(
-                (result: T | T[]) => {
-                    if (Array.isArray(result)) {
-                        result.forEach((element) => {
-                            MongoDBAdaptor.convertMongoIdsToStrings(element)
-                        })
-                    } else {
-                        MongoDBAdaptor.convertMongoIdsToStrings(result)
+            if (mongoose_query) {
+                mongoose_query.lean().exec().then(
+                    (result: T | T[]) => {
+                        if (Array.isArray(result)) {
+                            result.forEach((element) => {
+                                MongoDBAdaptor.convertMongoIdsToStrings(element)
+                            })
+                        } else {
+                            MongoDBAdaptor.convertMongoIdsToStrings(result)
+                        }
+                        done(undefined, result)
+                    },
+                    (error) => {
+                        done(error)
                     }
-                    done(undefined, result)
-                },
-                (error) => {
-                    done(error)
-                }
-            )
+                )
+            } else {
+                done(new Error('_id is invalid'))
+            }
+
         } else {
             return this.read_promisified(_id_or_ids)
         }
