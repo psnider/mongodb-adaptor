@@ -543,17 +543,21 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
 
     // del(_id: DatabaseID) : Promise<void>
     // del(_id: DatabaseID, done: ErrorOnlyCallback) : void
-    del(_id: DatabaseID, done?: (error: Error) => void) : Promise<null> | void {
+    del(_id: DatabaseID, done?: ErrorOnlyCallback) : Promise<null> | void {
         if (done) {
-            var mongoose_query = this.model.remove({_id})
-            mongoose_query.lean().exec().then(
-                (data) => {
-                    done(undefined)
-                },
-                (error) => {
-                    done(error)
-                }
-            )
+            if (_id != null) {
+                var mongoose_query = this.model.remove({_id})
+                mongoose_query.lean().exec().then(
+                    (data) => {
+                        done()
+                    },
+                    (error) => {
+                        done(error)
+                    }
+                )
+            } else {
+                done(new Error('_id is invalid'))
+            }
         } else {
             return this.del_promisified(_id)
         }

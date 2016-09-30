@@ -425,12 +425,17 @@ var MongoDBAdaptor = (function () {
     // del(_id: DatabaseID, done: ErrorOnlyCallback) : void
     MongoDBAdaptor.prototype.del = function (_id, done) {
         if (done) {
-            var mongoose_query = this.model.remove({ _id: _id });
-            mongoose_query.lean().exec().then(function (data) {
-                done(undefined);
-            }, function (error) {
-                done(error);
-            });
+            if (_id != null) {
+                var mongoose_query = this.model.remove({ _id: _id });
+                mongoose_query.lean().exec().then(function (data) {
+                    done();
+                }, function (error) {
+                    done(error);
+                });
+            }
+            else {
+                done(new Error('_id is invalid'));
+            }
         }
         else {
             return this.del_promisified(_id);
