@@ -408,6 +408,15 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
             if (sort != null) {
                 mongoose_query.sort(sort)
             }
+            if (cursor == null) cursor = {}
+            if (cursor.start_offset == null) cursor.start_offset = 0
+            if (cursor.count == null) cursor.count = 10
+            if (cursor.start_offset != null) {
+                mongoose_query.skip(cursor.start_offset)
+            }
+            if (cursor.count != null) {
+                mongoose_query.limit(cursor.count)
+            }
             mongoose_query.lean().exec().then(
                 (elements: T[]) => {
                     elements.forEach((element) => {
