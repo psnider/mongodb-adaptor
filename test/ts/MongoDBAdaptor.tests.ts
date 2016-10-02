@@ -17,7 +17,7 @@ import {UpdateFieldCommand} from 'document-database-if'
 
 import {MongoDaemon} from 'mongod-runner'
 import {MongoDBAdaptor} from 'MongoDBAdaptor'
-import {Fieldnames, test_create, test_read, test_replace, test_del, test_update, test_find} from 'document-database-tests'
+import {UpdateConfiguration, test_create, test_read, test_replace, test_del, test_update, test_find} from 'document-database-tests'
 
 process.on('uncaughtException', function(error) {
   console.log('Found uncaughtException: ' + error)
@@ -351,11 +351,9 @@ describe('MongoDBAdaptor', function() {
     })
 
 
-
-
     describe('update()', function() {
-        var fieldnames: Fieldnames = {
-            top_level: {
+        var fieldnames: UpdateConfiguration = {
+            test: {
                 populated_string: 'name',
                 unpopulated_string: 'description',
                 string_array: {name: 'notes'},
@@ -366,7 +364,7 @@ describe('MongoDBAdaptor', function() {
                     unpopulated_field: {name: 'info.color', type: 'string'},
                     createElement: createNewPartComponent
                 }
-            }      
+            }
         }
 
         test_update<Part>(getPartsAdaptor, createNewPart, fieldnames)
