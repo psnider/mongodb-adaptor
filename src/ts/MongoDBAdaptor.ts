@@ -493,7 +493,11 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
             })
         }
         if (done) {
-            var mongo_updates = MongoDBAdaptor.convertUpdateCommandsToMongo(updates)
+            try {
+                var mongo_updates = MongoDBAdaptor.convertUpdateCommandsToMongo(updates)
+            } catch (error) {
+                done(error)                
+            }
             if (mongo_updates.length == 0) {
                 var error = new Error('no updates specified in update command for conditions=' + JSON.stringify(conditions))
                 done(error)
