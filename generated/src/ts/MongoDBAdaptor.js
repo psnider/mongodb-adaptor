@@ -381,7 +381,13 @@ var MongoDBAdaptor = (function () {
             });
         };
         if (done) {
-            var mongo_updates = MongoDBAdaptor.convertUpdateCommandsToMongo(updates);
+            try {
+                var mongo_updates = MongoDBAdaptor.convertUpdateCommandsToMongo(updates);
+            }
+            catch (error) {
+                done(error);
+                return;
+            }
             if (mongo_updates.length == 0) {
                 var error = new Error('no updates specified in update command for conditions=' + JSON.stringify(conditions));
                 done(error);
