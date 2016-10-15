@@ -115,7 +115,9 @@ var MongoDBAdaptor = (function () {
     };
     MongoDBAdaptor.prototype.connect = function (done) {
         if (done) {
-            var onError = function (error) { console.log("mongoose_connect error=" + error); };
+            var onError = function (error) {
+                log.error({ error: error }, 'mongoose_connect');
+            };
             mongoose_connector_1.connect(this.mongodb_path, onError, done);
         }
         else {

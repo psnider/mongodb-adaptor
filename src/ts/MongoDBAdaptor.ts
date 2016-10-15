@@ -225,7 +225,9 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
 
     connect(done?: ErrorOnlyCallback): any {
         if (done) {
-            var onError = (error) => {console.log(`mongoose_connect error=${error}`)}
+            var onError = (error) => {
+                log.error({error}, 'mongoose_connect')
+            }
             mongoose_connect(this.mongodb_path, onError, done)
         } else {
             return this.connect_promisified()
