@@ -16,7 +16,7 @@ import configure                        = require('configure-local')
 import {UpdateFieldCommand} from 'document-database-if'
 
 import {MongoDaemon} from 'mongod-runner'
-import {MongoDBAdaptor} from 'MongoDBAdaptor'
+import {MongoDBAdaptor} from 'mongodb-adaptor'
 import {UpdateConfiguration, test_create, test_read, test_replace, test_del, test_update, test_find} from 'document-database-tests'
 
 process.on('uncaughtException', function(error) {

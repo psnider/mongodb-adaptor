@@ -2,16 +2,17 @@
   "name": "mongodb-adaptor",
   "version": "0.0.1",
   "description": "A database adaptor for using MongoDB.",
-  "main": "generated/src/ts/MongoDBAdaptor.js",
+  "main": "generated/src/ts/mongodb-adaptor.js",
   "keywords": [],
   "private": false,
   "scripts": {
-    "postinstall": "typings install && npm run link-MongoDBAdaptor-if-needed",
-    "link-MongoDBAdaptor-if-needed": "[[ ! -e node_modules ]] || [[ -e node_modules/MongoDBAdaptor ]] || ln -s .. node_modules/MongoDBAdaptor",
+    "postinstall": "typings install",
+    "install-in-node_modules": "bin/install-in-node_modules.sh",
+    "build": "npm run install-in-node_modules && tsc --project .",
+    "reports": "bin/run-reports.sh",
     "reinstall": "rm -fr node_modules typings && npm install",
-    "clean": "rm -fr generated",
-    "build": "tsc -p .",
-    "test": "npm run build && NODE_PATH=.:generated/src/ts   mocha -R spec generated/test/ts/MongoDBAdaptor.tests.js"
+    "clean": "rm -fr generated reports",
+    "test": "npm run build && NODE_PATH=.:generated/src/ts   mocha -R spec generated/test/ts/mongodb-adaptor.tests.js"
   },
   "author": {
     "name": "Peter Snider",
@@ -37,5 +38,5 @@
     "type": "git",
     "url": "git@github.com:psnider/mongodb-adaptor.git"
   },
-  "typings": "./MongoDBAdaptor.d.ts"
+  "typings": "./mongodb-adaptor.d.ts"
 }

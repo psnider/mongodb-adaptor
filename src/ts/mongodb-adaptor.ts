@@ -4,12 +4,12 @@ mongoose.Promise = global.Promise
 import pino                             = require('pino')
 
 import configure                        = require('configure-local')
-import {ArrayCallback, Conditions, Cursor, DatabaseID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from 'document-database-if'
-import {MongodbUpdateArgs} from '../../MongoDBAdaptor'
+import {ArrayCallback, Conditions, Cursor, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from 'document-database-if'
+import {MongodbUpdateArgs} from 'mongodb-adaptor'
 import {connect as mongoose_connect, disconnect as mongoose_disconnect} from 'mongoose-connector'
 
 
-var log = pino({name: 'MongoDBAdaptor'})
+var log = pino({name: 'mongodb-adaptor'})
 
 
 
@@ -18,7 +18,7 @@ var log = pino({name: 'MongoDBAdaptor'})
 
 // This adaptor converts application queries into Mongo queries
 // and the query results into application results, suitable for use by cscFramework
-export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
+export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements DocumentDatabase<DocumentType> {
 
     static  createObjectId() : string {
         var _id = new mongoose.Types.ObjectId
@@ -214,7 +214,7 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
 
     mongodb_path: string
     model: mongoose.Model<mongoose.Document>
-    db: MongoDBAdaptor<T>
+    db: MongoDBAdaptor<DocumentType>
 
 
     constructor(mongodb_path: string, model: mongoose.Model<mongoose.Document>) {
@@ -270,18 +270,19 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
     }
 
 
-    // create(obj: T): Promise<T>
-    // create(obj: T, done: ObjectCallback<T>): void
-    create(obj: T, done?: ObjectCallback<T>) : Promise<T> | void {
+    // create(obj: DocumentType): Promise<DocumentType>
+    // create(obj: DocumentType, done: ObjectCallback<DocumentType>): void
+    // TODO: REPAIR: create(obj: DocumentType, done?: ObjectCallback<DocumentType>) : Promise<DocumentType> | void {
+    create(obj: DocumentType, done?: ObjectCallback<DocumentType>) : any {
         if (done) {
             if (obj['_id']) {
                 done(new Error('_id isnt allowed for create'))
             } else {
                 let document : mongoose.Document = new this.model(obj)
                 document.save((error, saved_doc: mongoose.Document) => {
-                    let result: T
+                    let result: DocumentType
                     if (!error) {
-                        let marshalable_doc: T = <T>saved_doc.toObject()
+                        let marshalable_doc: DocumentType = <DocumentType>saved_doc.toObject()
                         // TODO: perhaps toObject should call convertMongoIdsToStrings? 
                         result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc)
                     } else {
@@ -296,7 +297,7 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
     }
 
 
-    private create_promisified(obj: T): Promise<T> {
+    private create_promisified(obj: DocumentType): Promise<DocumentType> {
         return new Promise((resolve, reject) => {
             this.create(obj, (error, result) => {
                 if (!error)  {
@@ -309,24 +310,25 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
     }
 
 
-    // read(_id: DatabaseID | DatabaseID[]) : Promise<T | T[]> 
-    // read(_id: DatabaseID | DatabaseID[], done: ObjectOrArrayCallback<T>) : void
-    read(_id_or_ids : DatabaseID | DatabaseID[], done?: ObjectOrArrayCallback<T>) : Promise<T | T[]> | void {
+    // read(_id: DocumentID | DocumentID[]) : Promise<DocumentType | DocumentType[]> 
+    // read(_id: DocumentID | DocumentID[], done: ObjectOrArrayCallback<DocumentType>) : void
+    // TODO: REPAIR: read(_id_or_ids : DocumentID | DocumentID[], done?: ObjectOrArrayCallback<DocumentType>) : Promise<DocumentType | DocumentType[]> | void {
+    read(_id_or_ids : DocumentID | DocumentID[], done?: ObjectOrArrayCallback<DocumentType>) : any {
         if (done) {
             var mongoose_query
             if (Array.isArray(_id_or_ids)) {
-                let _ids = <DatabaseID[]>_id_or_ids
+                let _ids = <DocumentID[]>_id_or_ids
                 let mongoose_ids = _ids.map((_id) => {return mongoose.Types.ObjectId.createFromHexString(_id)})
                 mongoose_query = this.model.find({
                     '_id': { $in: mongoose_ids}
                 });
             } else if ((typeof _id_or_ids == 'string') && (_id_or_ids.length > 0)){
-                let _id = <DatabaseID>_id_or_ids
+                let _id = <DocumentID>_id_or_ids
                 mongoose_query = this.model.findById(_id)
             }
             if (mongoose_query) {
                 mongoose_query.lean().exec().then(
-                    (result: T | T[]) => {
+                    (result: DocumentType | DocumentType[]) => {
                         if (Array.isArray(result)) {
                             result.forEach((element) => {
                                 MongoDBAdaptor.convertMongoIdsToStrings(element)
@@ -350,7 +352,7 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
     }
 
 
-    private read_promisified(_id_or_ids: DatabaseID | DatabaseID[]): Promise<T | T[]> {
+    private read_promisified(_id_or_ids: DocumentID | DocumentID[]): Promise<DocumentType | DocumentType[]> {
         return new Promise((resolve, reject) => {
             this.read(_id_or_ids, (error, result) => {
                 if (!error)  {
@@ -365,7 +367,8 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
 
     // TODO: obsolete this function, as all updates should be performed with update()
     // @return a Promise with the created element, if there is no callback
-    replace(obj: T, done?: ObjectCallback<T>) : Promise<T> | void {
+    // TODO: REPAIR: replace(obj: DocumentType, done?: ObjectCallback<DocumentType>) : Promise<DocumentType> | void {
+    replace(obj: DocumentType, done?: ObjectCallback<DocumentType>): any {
         if (done) {
             this.model.findById(obj['_id'], function (err, document) {
                 // assume that all keys are present in obj
@@ -373,9 +376,9 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
                     document[key] = obj[key]
                 }
                 document.save((error, saved_doc: mongoose.Document) => {
-                    let result: T
+                    let result: DocumentType
                     if (!error) {
-                        let marshalable_doc: T = <T>saved_doc.toObject()
+                        let marshalable_doc: DocumentType = <DocumentType>saved_doc.toObject()
                         // TODO: perhaps toObject should call convertMongoIdsToStrings? 
                         result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc)
                     } else {
@@ -390,7 +393,7 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
     }
 
 
-    private replace_promisified(obj: T): Promise<T> {
+    private replace_promisified(obj: DocumentType): Promise<DocumentType> {
         return new Promise((resolve, reject) => {
             this.replace(obj, (error, result) => {
                 if (!error)  {
@@ -404,7 +407,8 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
 
 
     // @return a Promise with the matching elements
-    find(conditions : Conditions, fields?: Fields, sort?: Sort, cursor?: Cursor, done?: ArrayCallback<T>) : Promise<T[]> | void {
+    // TODO: REPAIR: find(conditions : Conditions, fields?: Fields, sort?: Sort, cursor?: Cursor, done?: ArrayCallback<DocumentType>) : Promise<DocumentType[]> | void {
+    find(conditions : Conditions, fields?: Fields, sort?: Sort, cursor?: Cursor, done?: ArrayCallback<DocumentType>) : any {
         if (done) {
             var mongoose_query = this.model.find(conditions, fields, cursor)
             if (sort != null) {
@@ -420,7 +424,7 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
                 mongoose_query.limit(cursor.count)
             }
             mongoose_query.lean().exec().then(
-                (elements: T[]) => {
+                (elements: DocumentType[]) => {
                     elements.forEach((element) => {
                         MongoDBAdaptor.convertMongoIdsToStrings(element)
                     })
@@ -436,7 +440,7 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
     }
 
 
-    private find_promisified(conditions: Conditions, fields?: Fields, sort?: Sort, cursor?: Cursor): Promise<T[]> {
+    private find_promisified(conditions: Conditions, fields?: Fields, sort?: Sort, cursor?: Cursor): Promise<DocumentType[]> {
         return new Promise((resolve, reject) => {
             this.find(conditions, fields, sort, cursor, (error, result) => {
                 if (!error)  {
@@ -451,7 +455,8 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
 
 
     // @return a Promise with the updated elements
-    update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback<T>) : Promise<T> | void {
+    // TODO: REPAIR: update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback<DocumentType>) : Promise<DocumentType> | void {
+    update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback<DocumentType>) : any {
         function getId(conditions) : string {
             if ('_id' in conditions) {
                 var condition = conditions._id
@@ -476,8 +481,8 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
                 return null
             }
         }
-        var readDoc : (_id) => Promise<T> = (_id) => {
-            let promise = <Promise<T>>this.read(_id)
+        var readDoc : (_id) => Promise<DocumentType> = (_id) => {
+            let promise = <Promise<DocumentType>>this.read(_id)
             return promise.then(
                 (result) => {
                     return result
@@ -544,7 +549,7 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
     }
 
 
-    private update_promisified(conditions: any, updates: UpdateFieldCommand[]): Promise<T> {
+    private update_promisified(conditions: any, updates: UpdateFieldCommand[]): Promise<DocumentType> {
         return new Promise((resolve, reject) => {
             this.update(conditions, updates, (error, result) => {
                 if (!error)  {
@@ -557,9 +562,10 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
     }
 
 
-    // del(_id: DatabaseID) : Promise<void>
-    // del(_id: DatabaseID, done: ErrorOnlyCallback) : void
-    del(_id: DatabaseID, done?: ErrorOnlyCallback) : Promise<null> | void {
+    // del(_id: DocumentID) : Promise<void>
+    // del(_id: DocumentID, done: ErrorOnlyCallback) : void
+    // TODO: REPAIR: del(_id: DocumentID, done?: ErrorOnlyCallback) : Promise<null> | void {
+    del(_id: DocumentID, done?: ErrorOnlyCallback) : any {
         if (done) {
             if (_id != null) {
                 var mongoose_query = this.model.remove({_id})
@@ -580,7 +586,7 @@ export class MongoDBAdaptor<T> implements DocumentDatabase<T> {
     }
 
 
-    private del_promisified(_id: DatabaseID): Promise<null> {
+    private del_promisified(_id: DocumentID): Promise<null> {
         return new Promise((resolve, reject) => {
             this.del(_id, (error) => {
                 if (!error)  {

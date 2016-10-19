@@ -33,10 +33,10 @@
         "MongoDBAdaptor.d.ts"
     ],
     "files": [
-        "src/ts/MongoDBAdaptor.ts",
-        "test/ts/MongoDBAdaptor.tests.ts",
+        "src/ts/mongodb-adaptor.ts",
+        "test/ts/mongodb-adaptor.tests.ts",
         "typings/index.d.ts",
-        "MongoDBAdaptor.d.ts"
+        "mongodb-adaptor.d.ts"
     ],
     "exclude": [],
     "atom": {
