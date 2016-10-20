@@ -2,6 +2,6 @@
 logs/**
 node_modules
 generated/**
-!generated/src/ts/MongoDBAdaptor.js
+!generated/src/ts/mongodb-adaptor.js
 npm-debug.log*
 _test-output
