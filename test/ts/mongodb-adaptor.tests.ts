@@ -14,9 +14,11 @@ import tmp                              = require('tmp')
 
 import configure                        = require('configure-local')
 import {UpdateFieldCommand} from 'document-database-if'
+import {FieldsUsedInTests} from 'document-database-tests'
+
 
 import {MongoDaemon} from 'mongod-runner'
-import {MongoDBAdaptor} from 'mongodb-adaptor'
+import {MongoDBAdaptor, UNSUPPORTED_UPDATE_CMDS} from 'mongodb-adaptor'
 import {UpdateConfiguration, test_create, test_read, test_replace, test_del, test_update, test_find} from 'document-database-tests'
 
 process.on('uncaughtException', function(error) {
@@ -97,6 +99,18 @@ namespace Parts {
 type Part = Parts.Part
 
 
+var fields_used_in_tests: FieldsUsedInTests = {
+    populated_string: 'name',
+    unpopulated_string: 'description',
+    string_array: {name: 'notes'},
+    obj_array: {
+        name: 'components',
+        key_field: 'part_id',
+        populated_field: {name: 'info.quantity', type: 'number'},
+        unpopulated_field: {name: 'info.color', type: 'string'},
+        createElement: createNewPartComponent
+    }
+}
 
 
 describe('deepEqualObjOrMongo', function() {
@@ -353,18 +367,8 @@ describe('MongoDBAdaptor', function() {
 
     describe('update()', function() {
         var fieldnames: UpdateConfiguration = {
-            test: {
-                populated_string: 'name',
-                unpopulated_string: 'description',
-                string_array: {name: 'notes'},
-                obj_array: {
-                    name: 'components',
-                    key_field: 'part_id',
-                    populated_field: {name: 'info.quantity', type: 'number'},
-                    unpopulated_field: {name: 'info.color', type: 'string'},
-                    createElement: createNewPartComponent
-                }
-            }
+            test: fields_used_in_tests,
+            unsupported: UNSUPPORTED_UPDATE_CMDS
         }
 
         test_update<Part>(getPartsAdaptor, createNewPart, fieldnames)

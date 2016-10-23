@@ -5,6 +5,7 @@ import pino                             = require('pino')
 
 import configure                        = require('configure-local')
 import {ArrayCallback, Conditions, Cursor, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from 'document-database-if'
+import {UnsupportedUpdateCmds} from 'document-database-tests'
 import {MongodbUpdateArgs} from 'mongodb-adaptor'
 import {connect as mongoose_connect, disconnect as mongoose_disconnect} from 'mongoose-connector'
 
@@ -13,6 +14,7 @@ var log = pino({name: 'mongodb-adaptor'})
 
 
 
+export var UNSUPPORTED_UPDATE_CMDS: UnsupportedUpdateCmds = undefined
 
 
 
@@ -599,4 +601,5 @@ export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements 
     }
 
 }
+
 

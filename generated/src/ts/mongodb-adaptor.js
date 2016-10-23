@@ -5,6 +5,7 @@ mongoose.Promise = global.Promise;
 var pino = require('pino');
 var mongoose_connector_1 = require('mongoose-connector');
 var log = pino({ name: 'mongodb-adaptor' });
+exports.UNSUPPORTED_UPDATE_CMDS = undefined;
 // This adaptor converts application queries into Mongo queries
 // and the query results into application results, suitable for use by cscFramework
 var MongoDBAdaptor = (function () {
