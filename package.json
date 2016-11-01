@@ -24,15 +24,16 @@
     "document-database-if": "github:psnider/document-database-if",
     "document-database-tests": "github:psnider/document-database-tests",
     "mongod-runner": "github:psnider/mongod-runner",
-    "mongoose": "^4.6.0",
+    "mongoose": "4.6.5",
     "mongoose-connector": "github:psnider/mongoose-connector",
-    "pino": "^2.10.1"
+    "pino": "2.14.0"
   },
   "devDependencies": {
-    "chai": "^3.5.0",
-    "mocha": "^3.0.2",
-    "tmp": "0.0.28",
-    "typescript": "^2.0.0"
+    "chai": "3.5.0",
+    "mocha": "3.1.2",
+    "tmp": "0.0.29",
+    "typescript": "2.0.6",
+    "typings": "1.5.0"
   },
   "repository": {
     "type": "git",

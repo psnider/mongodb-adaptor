@@ -17,7 +17,7 @@ import {UpdateFieldCommand} from 'document-database-if'
 import {FieldsUsedInTests} from 'document-database-tests'
 
 
-import {MongoDaemon} from 'mongod-runner'
+import {MongoDaemonRunner} from 'mongod-runner'
 import {MongoDBAdaptor, UNSUPPORTED_UPDATE_CMDS} from 'mongodb-adaptor'
 import {UpdateConfiguration, test_create, test_read, test_replace, test_del, test_update, test_find} from 'document-database-tests'
 
@@ -201,14 +201,14 @@ describe('MongoDBAdaptor', function() {
     var COMPONENT_PART_ID = '123411111111111111111111'
     var COMPONENT_PART_2_ID = '123422222222222222222222'
 
-    var mongo_daemon: MongoDaemon
+    var mongo_daemon: MongoDaemonRunner
 
     var PARTS_ADAPTOR: MongoDBAdaptor<Part> 
 
     function getPartsAdaptor(): MongoDBAdaptor<Part>  {return PARTS_ADAPTOR}
 
     before(function(done) {
-        mongo_daemon = new MongoDaemon({port: PORT, use_tmp_dir: true, disable_logging: true})
+        mongo_daemon = new MongoDaemonRunner({port: PORT, use_tmp_dir: true, disable_logging: true})
         mongo_daemon.start((error) => {
             if (!error) {
                 // TODO: move to configuration
