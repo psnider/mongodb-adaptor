@@ -4,10 +4,13 @@ mongoose.Promise = global.Promise
 import pino                             = require('pino')
 
 import configure                        = require('configure-local')
-import {ArrayCallback, Conditions, Cursor, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from 'document-database-if'
+import {ArrayCallback, DocumentBase, Conditions, Cursor, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from 'document-database-if'
 import {UnsupportedUpdateCmds} from 'document-database-tests'
 import {MongodbUpdateArgs} from 'mongodb-adaptor'
 import {connect as mongoose_connect, disconnect as mongoose_disconnect} from 'mongoose-connector'
+
+
+type DocumentType = DocumentBase
 
 
 var log = pino({name: 'mongodb-adaptor'})
@@ -20,7 +23,7 @@ export var UNSUPPORTED_UPDATE_CMDS: UnsupportedUpdateCmds = undefined
 
 // This adaptor converts application queries into Mongo queries
 // and the query results into application results, suitable for use by cscFramework
-export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements DocumentDatabase<DocumentType> {
+export class MongoDBAdaptor implements DocumentDatabase {
 
     static  createObjectId() : string {
         var _id = new mongoose.Types.ObjectId
@@ -216,7 +219,7 @@ export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements 
 
     mongodb_path: string
     model: mongoose.Model<mongoose.Document>
-    db: MongoDBAdaptor<DocumentType>
+    db: MongoDBAdaptor
 
 
     constructor(mongodb_path: string, model: mongoose.Model<mongoose.Document>) {
@@ -225,7 +228,9 @@ export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements 
     }
 
 
-    connect(done?: ErrorOnlyCallback): any {
+    connect(): Promise<void>
+    connect(done: ErrorOnlyCallback): void
+    connect(done?: ErrorOnlyCallback): Promise<void> | void {
         if (done) {
             var onError = (error) => {
                 log.error({error}, 'mongoose_connect')
@@ -250,7 +255,9 @@ export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements 
     }
 
 
-    disconnect(done?: ErrorOnlyCallback): any {
+    disconnect(): Promise<void>
+    disconnect(done: ErrorOnlyCallback): void
+    disconnect(done?: ErrorOnlyCallback): Promise<void> | void {
         if (done) {
             mongoose_disconnect(done)
         } else {
@@ -273,9 +280,11 @@ export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements 
 
 
     // create(obj: DocumentType): Promise<DocumentType>
-    // create(obj: DocumentType, done: ObjectCallback<DocumentType>): void
-    // TODO: REPAIR: create(obj: DocumentType, done?: ObjectCallback<DocumentType>) : Promise<DocumentType> | void {
-    create(obj: DocumentType, done?: ObjectCallback<DocumentType>) : any {
+    // create(obj: DocumentType, done: ObjectCallback): void
+    // TODO: REPAIR: create(obj: DocumentType, done?: ObjectCallback) : Promise<DocumentType> | void {
+    create(obj: DocumentType) : Promise<DocumentType>
+    create(obj: DocumentType, done: ObjectCallback): void
+    create(obj: DocumentType, done?: ObjectCallback) : Promise<DocumentType> | void {
         if (done) {
             if (obj['_id']) {
                 done(new Error('_id isnt allowed for create'))
@@ -312,10 +321,9 @@ export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements 
     }
 
 
-    // read(_id: DocumentID | DocumentID[]) : Promise<DocumentType | DocumentType[]> 
-    // read(_id: DocumentID | DocumentID[], done: ObjectOrArrayCallback<DocumentType>) : void
-    // TODO: REPAIR: read(_id_or_ids : DocumentID | DocumentID[], done?: ObjectOrArrayCallback<DocumentType>) : Promise<DocumentType | DocumentType[]> | void {
-    read(_id_or_ids : DocumentID | DocumentID[], done?: ObjectOrArrayCallback<DocumentType>) : any {
+    read(_id_or_ids : DocumentID | DocumentID[]) : Promise<DocumentType | DocumentType[]>
+    read(_id_or_ids : DocumentID | DocumentID[], done: ObjectOrArrayCallback) : void
+    read(_id_or_ids : DocumentID | DocumentID[], done?: ObjectOrArrayCallback) : Promise<DocumentType | DocumentType[]> | void {
         if (done) {
             var mongoose_query
             if (Array.isArray(_id_or_ids)) {
@@ -369,8 +377,10 @@ export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements 
 
     // TODO: obsolete this function, as all updates should be performed with update()
     // @return a Promise with the created element, if there is no callback
-    // TODO: REPAIR: replace(obj: DocumentType, done?: ObjectCallback<DocumentType>) : Promise<DocumentType> | void {
-    replace(obj: DocumentType, done?: ObjectCallback<DocumentType>): any {
+    // TODO: REPAIR: replace(obj: DocumentType, done?: ObjectCallback) : Promise<DocumentType> | void {
+    replace(obj: DocumentType): Promise<DocumentType>
+    replace(obj: DocumentType, done: ObjectCallback): void
+    replace(obj: DocumentType, done?: ObjectCallback): Promise<DocumentType> | void {
         if (done) {
             this.model.findById(obj['_id'], function (err, document) {
                 // assume that all keys are present in obj
@@ -408,9 +418,9 @@ export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements 
     }
 
 
-    // @return a Promise with the matching elements
-    // TODO: REPAIR: find(conditions : Conditions, fields?: Fields, sort?: Sort, cursor?: Cursor, done?: ArrayCallback<DocumentType>) : Promise<DocumentType[]> | void {
-    find(conditions : Conditions, fields?: Fields, sort?: Sort, cursor?: Cursor, done?: ArrayCallback<DocumentType>) : any {
+    find(conditions : Conditions, fields?: Fields, sort?: Sort, cursor?: Cursor) : Promise<DocumentType[]>
+    find(conditions : Conditions, fields: Fields, sort: Sort, cursor: Cursor, done: ArrayCallback) : void
+    find(conditions : Conditions, fields?: Fields, sort?: Sort, cursor?: Cursor, done?: ArrayCallback) : Promise<DocumentType[]> | void {
         if (done) {
             var mongoose_query = this.model.find(conditions, fields, cursor)
             if (sort != null) {
@@ -457,8 +467,8 @@ export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements 
 
 
     // @return a Promise with the updated elements
-    // TODO: REPAIR: update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback<DocumentType>) : Promise<DocumentType> | void {
-    update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback<DocumentType>) : any {
+    // TODO: REPAIR: update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback) : Promise<DocumentType> | void {
+    update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback) : any {
         function getId(conditions) : string {
             if ('_id' in conditions) {
                 var condition = conditions._id

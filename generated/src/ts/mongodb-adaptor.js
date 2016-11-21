@@ -159,9 +159,6 @@ var MongoDBAdaptor = (function () {
             });
         });
     };
-    // create(obj: DocumentType): Promise<DocumentType>
-    // create(obj: DocumentType, done: ObjectCallback<DocumentType>): void
-    // TODO: REPAIR: create(obj: DocumentType, done?: ObjectCallback<DocumentType>) : Promise<DocumentType> | void {
     MongoDBAdaptor.prototype.create = function (obj, done) {
         if (done) {
             if (obj['_id']) {
@@ -200,9 +197,6 @@ var MongoDBAdaptor = (function () {
             });
         });
     };
-    // read(_id: DocumentID | DocumentID[]) : Promise<DocumentType | DocumentType[]> 
-    // read(_id: DocumentID | DocumentID[], done: ObjectOrArrayCallback<DocumentType>) : void
-    // TODO: REPAIR: read(_id_or_ids : DocumentID | DocumentID[], done?: ObjectOrArrayCallback<DocumentType>) : Promise<DocumentType | DocumentType[]> | void {
     MongoDBAdaptor.prototype.read = function (_id_or_ids, done) {
         if (done) {
             var mongoose_query;
@@ -253,9 +247,6 @@ var MongoDBAdaptor = (function () {
             });
         });
     };
-    // TODO: obsolete this function, as all updates should be performed with update()
-    // @return a Promise with the created element, if there is no callback
-    // TODO: REPAIR: replace(obj: DocumentType, done?: ObjectCallback<DocumentType>) : Promise<DocumentType> | void {
     MongoDBAdaptor.prototype.replace = function (obj, done) {
         if (done) {
             this.model.findById(obj['_id'], function (err, document) {
@@ -294,8 +285,6 @@ var MongoDBAdaptor = (function () {
             });
         });
     };
-    // @return a Promise with the matching elements
-    // TODO: REPAIR: find(conditions : Conditions, fields?: Fields, sort?: Sort, cursor?: Cursor, done?: ArrayCallback<DocumentType>) : Promise<DocumentType[]> | void {
     MongoDBAdaptor.prototype.find = function (conditions, fields, sort, cursor, done) {
         if (done) {
             var mongoose_query = this.model.find(conditions, fields, cursor);
@@ -341,7 +330,7 @@ var MongoDBAdaptor = (function () {
         });
     };
     // @return a Promise with the updated elements
-    // TODO: REPAIR: update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback<DocumentType>) : Promise<DocumentType> | void {
+    // TODO: REPAIR: update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback) : Promise<DocumentType> | void {
     MongoDBAdaptor.prototype.update = function (conditions, updates, done) {
         var _this = this;
         function getId(conditions) {

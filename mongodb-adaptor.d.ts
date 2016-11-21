@@ -1,7 +1,8 @@
 import mongoose                         = require('mongoose')
-import {ArrayCallback, Conditions, Cursor, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from 'document-database-if'
+import {ArrayCallback, Conditions, Cursor, DocumentBase, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from 'document-database-if'
 import {UnsupportedUpdateCmds} from 'document-database-tests'
 
+type DocumentType = DocumentBase
 
 
 export interface MongodbUpdateArgs {
@@ -13,7 +14,7 @@ export interface MongodbUpdateArgs {
 export var UNSUPPORTED_UPDATE_CMDS: UnsupportedUpdateCmds
 
 
-export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements DocumentDatabase<DocumentType> {
+export class MongoDBAdaptor implements DocumentDatabase {
     static  createObjectId() : string 
     static isEmpty(obj): boolean
     static deepEqualObjOrMongo(lhs, rhs) : boolean
@@ -26,16 +27,16 @@ export class MongoDBAdaptor<DocumentType extends {_id?: DocumentID}> implements 
     disconnect(done: ErrorOnlyCallback): void
     disconnect() : Promise<void>
     create(obj: DocumentType): Promise<DocumentType>
-    create(obj: DocumentType, done: ObjectCallback<DocumentType>): void
+    create(obj: DocumentType, done: ObjectCallback): void
     read(_id_or_ids: DocumentID | DocumentID[]) : Promise<DocumentType | DocumentType[]> 
-    read(_id_or_ids: DocumentID | DocumentID[], done: ObjectOrArrayCallback<DocumentType>) : void
+    read(_id_or_ids: DocumentID | DocumentID[], done: ObjectOrArrayCallback) : void
     replace(obj: DocumentType) : Promise<DocumentType>
-    replace(obj: DocumentType, done: ObjectCallback<DocumentType>) : void
+    replace(obj: DocumentType, done: ObjectCallback) : void
     update(conditions : Conditions, updates: UpdateFieldCommand[]) : Promise<DocumentType>
-    update(conditions : Conditions, updates: UpdateFieldCommand[], done: ObjectCallback<DocumentType>) : void
+    update(conditions : Conditions, updates: UpdateFieldCommand[], done: ObjectCallback) : void
     del(_id: DocumentID) : Promise<void>
     del(_id: DocumentID, done: ErrorOnlyCallback) : void
     find(conditions : Conditions, fields?: Fields, sort?: Sort, cursor?: Cursor) : Promise<DocumentType[]> 
-    find(conditions : Conditions, fields: Fields, sort: Sort, cursor: Cursor, done: ArrayCallback<DocumentType>) : void
+    find(conditions : Conditions, fields: Fields, sort: Sort, cursor: Cursor, done: ArrayCallback) : void
 }
 

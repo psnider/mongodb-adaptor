@@ -203,9 +203,9 @@ describe('MongoDBAdaptor', function() {
 
     var mongo_daemon: MongoDaemonRunner
 
-    var PARTS_ADAPTOR: MongoDBAdaptor<Part> 
+    var PARTS_ADAPTOR: MongoDBAdaptor
 
-    function getPartsAdaptor(): MongoDBAdaptor<Part>  {return PARTS_ADAPTOR}
+    function getPartsAdaptor(): MongoDBAdaptor  {return PARTS_ADAPTOR}
 
     before(function(done) {
         mongo_daemon = new MongoDaemonRunner({port: PORT, use_tmp_dir: true, disable_logging: true})
@@ -213,7 +213,7 @@ describe('MongoDBAdaptor', function() {
             if (!error) {
                 // TODO: move to configuration
                 var mongo_path = `localhost:${PORT}/test`
-                PARTS_ADAPTOR = new MongoDBAdaptor<Part>(mongo_path, Parts.Model)
+                PARTS_ADAPTOR = new MongoDBAdaptor(mongo_path, Parts.Model)
                 PARTS_ADAPTOR.connect((error) => {
                     done(error)
                 })
