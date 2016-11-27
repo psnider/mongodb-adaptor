@@ -6,7 +6,7 @@ import pino                             = require('pino')
 import configure                        = require('@sabbatical/configure-local')
 import {ArrayCallback, DocumentBase, Conditions, Cursor, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from '@sabbatical/document-database'
 import {UnsupportedUpdateCmds} from '@sabbatical/document-database/tests'
-import {MongodbUpdateArgs} from '../../mongodb-adaptor.d'
+import {MongodbUpdateArgs} from './mongodb-adaptor.d'
 import {connect as mongoose_connect, disconnect as mongoose_disconnect} from '@sabbatical/mongoose-connector'
 
 

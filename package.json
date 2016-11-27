@@ -1,6 +1,6 @@
 {
   "name": "@sabbatical/mongodb-adaptor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A database adaptor for using MongoDB.",
   "main": "./mongodb-adaptor.js",
   "keywords": [],
