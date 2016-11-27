@@ -1,27 +1,45 @@
 "use strict";
-var mongoose = require('mongoose');
+const mongoose = require('mongoose');
 // Use native promises
 mongoose.Promise = global.Promise;
-var pino = require('pino');
-var mongoose_connector_1 = require('mongoose-connector');
+const pino = require('pino');
+const mongoose_connector_1 = require('@sabbatical/mongoose-connector');
 var log = pino({ name: 'mongodb-adaptor' });
 exports.UNSUPPORTED_UPDATE_CMDS = undefined;
+// export var SUPPORTED_DATABASE_FEATURES: SupportedFeatures = {
+//     replace: true,
+//     update: {
+//         object: {
+//             set: true, 
+//             unset: true,
+//         },
+//         array: {
+//             set: true, 
+//             unset: true,
+//             insert: true,
+//             remove: true,
+//         }
+//     },
+//     find: {
+//         all: true
+//     }
+// }
 // This adaptor converts application queries into Mongo queries
 // and the query results into application results, suitable for use by cscFramework
-var MongoDBAdaptor = (function () {
-    function MongoDBAdaptor(mongodb_path, model) {
+class MongoDBAdaptor {
+    constructor(mongodb_path, model) {
         this.mongodb_path = mongodb_path;
         this.model = model;
     }
-    MongoDBAdaptor.createObjectId = function () {
+    static createObjectId() {
         var _id = new mongoose.Types.ObjectId;
         return _id.toHexString();
-    };
-    MongoDBAdaptor.isEmpty = function (obj) {
+    }
+    static isEmpty(obj) {
         return (Object.keys(obj).length === 0);
-    };
+    }
     // considers null, empty array, and obj._id to all be undefined
-    MongoDBAdaptor.deepEqualObjOrMongo = function (lhs, rhs) {
+    static deepEqualObjOrMongo(lhs, rhs) {
         function coerceType(value) {
             if (typeof value === 'null')
                 return undefined;
@@ -42,7 +60,7 @@ var MongoDBAdaptor = (function () {
                 return false;
             }
             else {
-                return lhs.every(function (element, i) {
+                return lhs.every((element, i) => {
                     return MongoDBAdaptor.deepEqualObjOrMongo(element, rhs[i]);
                 });
             }
@@ -54,7 +72,7 @@ var MongoDBAdaptor = (function () {
             var lhs_keys = Object.keys(lhs);
             var rhs_keys = Object.keys(rhs);
             // check each key, because a missing key is equivalent to an empty value at an existing key
-            return lhs_keys.every(function (key) {
+            return lhs_keys.every((key) => {
                 if (key === '_id') {
                     // ignore _id fields, but compare id, as id is a user-defined field
                     return true;
@@ -67,8 +85,8 @@ var MongoDBAdaptor = (function () {
         else {
             return (lhs === rhs);
         }
-    };
-    MongoDBAdaptor.convertUpdateCommandToMongo = function (update) {
+    }
+    static convertUpdateCommandToMongo(update) {
         if (update.cmd in MongoDBAdaptor.CONVERT_COMMAND) {
             var mongo_update = MongoDBAdaptor.CONVERT_COMMAND[update.cmd](update);
             return mongo_update;
@@ -76,8 +94,8 @@ var MongoDBAdaptor = (function () {
         else {
             throw new Error('unexpected update.cmd=' + update.cmd + ' field=' + update.field);
         }
-    };
-    MongoDBAdaptor.convertUpdateCommandsToMongo = function (updates) {
+    }
+    static convertUpdateCommandsToMongo(updates) {
         var mongo_updates = [];
         for (var i = 0; i < updates.length; ++i) {
             var update = updates[i];
@@ -85,17 +103,17 @@ var MongoDBAdaptor = (function () {
             mongo_updates.push(mongo_update);
         }
         return mongo_updates;
-    };
+    }
     // Convert from mongoose.Document to plain object,
     // in particular, converting ObjectId to a string
-    MongoDBAdaptor.getOverTheNetworkObject = function (obj) {
+    static getOverTheNetworkObject(obj) {
         return JSON.parse(JSON.stringify(obj));
-    };
+    }
     // Converting ObjectId to a string
-    MongoDBAdaptor.convertMongoIdsToStrings = function (obj) {
+    static convertMongoIdsToStrings(obj) {
         if (obj != null) {
             if (Array.isArray(obj)) {
-                obj.forEach(function (element, i, array) {
+                obj.forEach((element, i, array) => {
                     if (element) {
                         array[i] = MongoDBAdaptor.convertMongoIdsToStrings(element);
                     }
@@ -105,7 +123,7 @@ var MongoDBAdaptor = (function () {
                 obj = obj.toString();
             }
             else if (typeof obj === 'object') {
-                Object.keys(obj).forEach(function (key) {
+                Object.keys(obj).forEach((key) => {
                     if (obj[key]) {
                         obj[key] = MongoDBAdaptor.convertMongoIdsToStrings(obj[key]);
                     }
@@ -113,22 +131,21 @@ var MongoDBAdaptor = (function () {
             }
         }
         return obj;
-    };
-    MongoDBAdaptor.prototype.connect = function (done) {
+    }
+    connect(done) {
         if (done) {
-            var onError = function (error) {
-                log.error({ error: error }, 'mongoose_connect');
+            var onError = (error) => {
+                log.error({ error }, 'mongoose_connect');
             };
             mongoose_connector_1.connect(this.mongodb_path, onError, done);
         }
         else {
             return this.connect_promisified();
         }
-    };
-    MongoDBAdaptor.prototype.connect_promisified = function () {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            _this.connect(function (error) {
+    }
+    connect_promisified() {
+        return new Promise((resolve, reject) => {
+            this.connect((error) => {
                 if (!error) {
                     resolve();
                 }
@@ -137,19 +154,18 @@ var MongoDBAdaptor = (function () {
                 }
             });
         });
-    };
-    MongoDBAdaptor.prototype.disconnect = function (done) {
+    }
+    disconnect(done) {
         if (done) {
             mongoose_connector_1.disconnect(done);
         }
         else {
             return this.disconnect_promisified();
         }
-    };
-    MongoDBAdaptor.prototype.disconnect_promisified = function () {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            _this.connect(function (error) {
+    }
+    disconnect_promisified() {
+        return new Promise((resolve, reject) => {
+            this.connect((error) => {
                 if (!error) {
                     resolve();
                 }
@@ -158,18 +174,18 @@ var MongoDBAdaptor = (function () {
                 }
             });
         });
-    };
-    MongoDBAdaptor.prototype.create = function (obj, done) {
+    }
+    create(obj, done) {
         if (done) {
             if (obj['_id']) {
                 done(new Error('_id isnt allowed for create'));
             }
             else {
-                var document_1 = new this.model(obj);
-                document_1.save(function (error, saved_doc) {
-                    var result;
+                let document = new this.model(obj);
+                document.save((error, saved_doc) => {
+                    let result;
                     if (!error) {
-                        var marshalable_doc = saved_doc.toObject();
+                        let marshalable_doc = saved_doc.toObject();
                         // TODO: perhaps toObject should call convertMongoIdsToStrings? 
                         result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc);
                     }
@@ -183,11 +199,10 @@ var MongoDBAdaptor = (function () {
         else {
             return this.create_promisified(obj);
         }
-    };
-    MongoDBAdaptor.prototype.create_promisified = function (obj) {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            _this.create(obj, function (error, result) {
+    }
+    create_promisified(obj) {
+        return new Promise((resolve, reject) => {
+            this.create(obj, (error, result) => {
                 if (!error) {
                     resolve(result);
                 }
@@ -196,25 +211,25 @@ var MongoDBAdaptor = (function () {
                 }
             });
         });
-    };
-    MongoDBAdaptor.prototype.read = function (_id_or_ids, done) {
+    }
+    read(_id_or_ids, done) {
         if (done) {
             var mongoose_query;
             if (Array.isArray(_id_or_ids)) {
-                var _ids = _id_or_ids;
-                var mongoose_ids = _ids.map(function (_id) { return mongoose.Types.ObjectId.createFromHexString(_id); });
+                let _ids = _id_or_ids;
+                let mongoose_ids = _ids.map((_id) => { return mongoose.Types.ObjectId.createFromHexString(_id); });
                 mongoose_query = this.model.find({
                     '_id': { $in: mongoose_ids }
                 });
             }
             else if ((typeof _id_or_ids == 'string') && (_id_or_ids.length > 0)) {
-                var _id = _id_or_ids;
+                let _id = _id_or_ids;
                 mongoose_query = this.model.findById(_id);
             }
             if (mongoose_query) {
-                mongoose_query.lean().exec().then(function (result) {
+                mongoose_query.lean().exec().then((result) => {
                     if (Array.isArray(result)) {
-                        result.forEach(function (element) {
+                        result.forEach((element) => {
                             MongoDBAdaptor.convertMongoIdsToStrings(element);
                         });
                     }
@@ -222,7 +237,7 @@ var MongoDBAdaptor = (function () {
                         MongoDBAdaptor.convertMongoIdsToStrings(result);
                     }
                     done(undefined, result);
-                }, function (error) {
+                }, (error) => {
                     done(error);
                 });
             }
@@ -233,11 +248,10 @@ var MongoDBAdaptor = (function () {
         else {
             return this.read_promisified(_id_or_ids);
         }
-    };
-    MongoDBAdaptor.prototype.read_promisified = function (_id_or_ids) {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            _this.read(_id_or_ids, function (error, result) {
+    }
+    read_promisified(_id_or_ids) {
+        return new Promise((resolve, reject) => {
+            this.read(_id_or_ids, (error, result) => {
                 if (!error) {
                     resolve(result);
                 }
@@ -246,18 +260,18 @@ var MongoDBAdaptor = (function () {
                 }
             });
         });
-    };
-    MongoDBAdaptor.prototype.replace = function (obj, done) {
+    }
+    replace(obj, done) {
         if (done) {
             this.model.findById(obj['_id'], function (err, document) {
                 // assume that all keys are present in obj
-                for (var key in obj) {
+                for (let key in obj) {
                     document[key] = obj[key];
                 }
-                document.save(function (error, saved_doc) {
-                    var result;
+                document.save((error, saved_doc) => {
+                    let result;
                     if (!error) {
-                        var marshalable_doc = saved_doc.toObject();
+                        let marshalable_doc = saved_doc.toObject();
                         // TODO: perhaps toObject should call convertMongoIdsToStrings? 
                         result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc);
                     }
@@ -271,11 +285,10 @@ var MongoDBAdaptor = (function () {
         else {
             return this.replace_promisified(obj);
         }
-    };
-    MongoDBAdaptor.prototype.replace_promisified = function (obj) {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            _this.replace(obj, function (error, result) {
+    }
+    replace_promisified(obj) {
+        return new Promise((resolve, reject) => {
+            this.replace(obj, (error, result) => {
                 if (!error) {
                     resolve(result);
                 }
@@ -284,8 +297,8 @@ var MongoDBAdaptor = (function () {
                 }
             });
         });
-    };
-    MongoDBAdaptor.prototype.find = function (conditions, fields, sort, cursor, done) {
+    }
+    find(conditions, fields, sort, cursor, done) {
         if (done) {
             var mongoose_query = this.model.find(conditions, fields, cursor);
             if (sort != null) {
@@ -303,23 +316,22 @@ var MongoDBAdaptor = (function () {
             if (cursor.count != null) {
                 mongoose_query.limit(cursor.count);
             }
-            mongoose_query.lean().exec().then(function (elements) {
-                elements.forEach(function (element) {
+            mongoose_query.lean().exec().then((elements) => {
+                elements.forEach((element) => {
                     MongoDBAdaptor.convertMongoIdsToStrings(element);
                 });
                 done(undefined, elements);
-            }, function (error) {
+            }, (error) => {
                 done(error);
             });
         }
         else {
             return this.find_promisified(conditions, fields, sort, cursor);
         }
-    };
-    MongoDBAdaptor.prototype.find_promisified = function (conditions, fields, sort, cursor) {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            _this.find(conditions, fields, sort, cursor, function (error, result) {
+    }
+    find_promisified(conditions, fields, sort, cursor) {
+        return new Promise((resolve, reject) => {
+            this.find(conditions, fields, sort, cursor, (error, result) => {
                 if (!error) {
                     resolve(result);
                 }
@@ -328,11 +340,10 @@ var MongoDBAdaptor = (function () {
                 }
             });
         });
-    };
+    }
     // @return a Promise with the updated elements
     // TODO: REPAIR: update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback) : Promise<DocumentType> | void {
-    MongoDBAdaptor.prototype.update = function (conditions, updates, done) {
-        var _this = this;
+    update(conditions, updates, done) {
         function getId(conditions) {
             if ('_id' in conditions) {
                 var condition = conditions._id;
@@ -363,15 +374,15 @@ var MongoDBAdaptor = (function () {
                 return null;
             }
         }
-        var readDoc = function (_id) {
-            var promise = _this.read(_id);
-            return promise.then(function (result) {
+        var readDoc = (_id) => {
+            let promise = this.read(_id);
+            return promise.then((result) => {
                 return result;
             });
         };
-        var chainPromise = function (serial_promise, mongo_update, mongoose_query) {
-            return serial_promise.then(function () {
-                return mongoose_query.lean().exec().then(function (result) {
+        var chainPromise = (serial_promise, mongo_update, mongoose_query) => {
+            return serial_promise.then(() => {
+                return mongoose_query.lean().exec().then((result) => {
                     MongoDBAdaptor.convertMongoIdsToStrings(mongo_update);
                     return result;
                 });
@@ -409,12 +420,12 @@ var MongoDBAdaptor = (function () {
                     serial_promise = chainPromise(serial_promise, mongo_update, mongoose_query);
                 }
                 // when the last resolves, read the latest document
-                var read_promise = serial_promise.then(function (result) {
+                var read_promise = serial_promise.then((result) => {
                     return readDoc(_id);
                 });
-                read_promise.then(function (doc) {
+                read_promise.then((doc) => {
                     done(undefined, doc);
-                }, function (error) {
+                }, (error) => {
                     done(error);
                 });
             }
@@ -422,11 +433,10 @@ var MongoDBAdaptor = (function () {
         else {
             return this.update_promisified(conditions, updates);
         }
-    };
-    MongoDBAdaptor.prototype.update_promisified = function (conditions, updates) {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            _this.update(conditions, updates, function (error, result) {
+    }
+    update_promisified(conditions, updates) {
+        return new Promise((resolve, reject) => {
+            this.update(conditions, updates, (error, result) => {
                 if (!error) {
                     resolve(result);
                 }
@@ -435,17 +445,17 @@ var MongoDBAdaptor = (function () {
                 }
             });
         });
-    };
+    }
     // del(_id: DocumentID) : Promise<void>
     // del(_id: DocumentID, done: ErrorOnlyCallback) : void
     // TODO: REPAIR: del(_id: DocumentID, done?: ErrorOnlyCallback) : Promise<null> | void {
-    MongoDBAdaptor.prototype.del = function (_id, done) {
+    del(_id, done) {
         if (done) {
             if (_id != null) {
-                var mongoose_query = this.model.remove({ _id: _id });
-                mongoose_query.lean().exec().then(function (data) {
+                var mongoose_query = this.model.remove({ _id });
+                mongoose_query.lean().exec().then((data) => {
                     done();
-                }, function (error) {
+                }, (error) => {
                     done(error);
                 });
             }
@@ -456,11 +466,10 @@ var MongoDBAdaptor = (function () {
         else {
             return this.del_promisified(_id);
         }
-    };
-    MongoDBAdaptor.prototype.del_promisified = function (_id) {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            _this.del(_id, function (error) {
+    }
+    del_promisified(_id) {
+        return new Promise((resolve, reject) => {
+            this.del(_id, (error) => {
                 if (!error) {
                     resolve(null);
                 }
@@ -469,92 +478,91 @@ var MongoDBAdaptor = (function () {
                 }
             });
         });
-    };
-    MongoDBAdaptor.CONVERT_COMMAND = {
-        set: function (update) {
-            var mongo_query = {};
-            var set_args = {};
-            if ('element_id' in update) {
-                if ('key_field' in update) {
-                    var key_path = update.field + '.' + update.key_field;
-                    mongo_query[key_path] = update.element_id;
-                    if ('subfield' in update) {
-                        // case: array.set with subfield
-                        var field_path = update.field + '.$.' + update.subfield;
-                    }
-                    else {
-                        // case: array.set w/o subfield
-                        field_path = update.field + '.$';
-                    }
+    }
+}
+MongoDBAdaptor.CONVERT_COMMAND = {
+    set: function (update) {
+        var mongo_query = {};
+        var set_args = {};
+        if ('element_id' in update) {
+            if ('key_field' in update) {
+                var key_path = update.field + '.' + update.key_field;
+                mongo_query[key_path] = update.element_id;
+                if ('subfield' in update) {
+                    // case: array.set with subfield
+                    var field_path = update.field + '.$.' + update.subfield;
                 }
                 else {
-                    // case: array contains simple types
-                    var key_path = update.field;
-                    mongo_query[key_path] = update.element_id;
+                    // case: array.set w/o subfield
                     field_path = update.field + '.$';
                 }
             }
             else {
-                // case: object.set
-                field_path = update.field;
+                // case: array contains simple types
+                var key_path = update.field;
+                mongo_query[key_path] = update.element_id;
+                field_path = update.field + '.$';
             }
-            set_args[field_path] = update.value;
-            return { query: mongo_query, update: { $set: set_args } };
-        },
-        unset: function (update) {
-            var mongo_query = {};
-            var unset_args = {};
-            if ('element_id' in update) {
-                if ('key_field' in update) {
-                    var key_path = update.field + '.' + update.key_field;
-                    mongo_query[key_path] = update.element_id;
-                    if ('subfield' in update) {
-                        // case: array.unset with subfield
-                        var field_path = update.field + '.$.' + update.subfield;
-                    }
-                    else {
-                        // invalid case: array.unset w/o subfield
-                        throw new Error('cmd=unset not allowed on array without a subfield, use cmd=remove');
-                    }
+        }
+        else {
+            // case: object.set
+            field_path = update.field;
+        }
+        set_args[field_path] = update.value;
+        return { query: mongo_query, update: { $set: set_args } };
+    },
+    unset: function (update) {
+        var mongo_query = {};
+        var unset_args = {};
+        if ('element_id' in update) {
+            if ('key_field' in update) {
+                var key_path = update.field + '.' + update.key_field;
+                mongo_query[key_path] = update.element_id;
+                if ('subfield' in update) {
+                    // case: array.unset with subfield
+                    var field_path = update.field + '.$.' + update.subfield;
                 }
                 else {
-                    // invalid case: array contains simple types
+                    // invalid case: array.unset w/o subfield
                     throw new Error('cmd=unset not allowed on array without a subfield, use cmd=remove');
                 }
             }
             else {
-                // case: object.unset
-                field_path = update.field;
+                // invalid case: array contains simple types
+                throw new Error('cmd=unset not allowed on array without a subfield, use cmd=remove');
             }
-            unset_args[field_path] = null;
-            return { query: mongo_query, update: { $unset: unset_args } };
-        },
-        insert: function (update) {
-            var mongo_query = {};
-            var add_args = {};
-            add_args[update.field] = update.value;
-            return { query: mongo_query, update: { $addToSet: add_args } };
-        },
-        remove: function (update) {
-            var mongo_query = {};
-            var pull_args = {};
-            var matcher;
-            if ('element_id' in update) {
-                if ('key_field' in update) {
-                    matcher = {};
-                    matcher[update.key_field] = update.element_id;
-                }
-                else {
-                    matcher = update.element_id;
-                }
+        }
+        else {
+            // case: object.unset
+            field_path = update.field;
+        }
+        unset_args[field_path] = null;
+        return { query: mongo_query, update: { $unset: unset_args } };
+    },
+    insert: function (update) {
+        var mongo_query = {};
+        var add_args = {};
+        add_args[update.field] = update.value;
+        return { query: mongo_query, update: { $addToSet: add_args } };
+    },
+    remove: function (update) {
+        var mongo_query = {};
+        var pull_args = {};
+        var matcher;
+        if ('element_id' in update) {
+            if ('key_field' in update) {
+                matcher = {};
+                matcher[update.key_field] = update.element_id;
             }
             else {
-                throw new Error('invalid remove, update_cmd=' + JSON.stringify(update));
+                matcher = update.element_id;
             }
-            pull_args[update.field] = matcher;
-            return { query: mongo_query, update: { $pull: pull_args } };
         }
-    };
-    return MongoDBAdaptor;
-}());
+        else {
+            throw new Error('invalid remove, update_cmd=' + JSON.stringify(update));
+        }
+        pull_args[update.field] = matcher;
+        return { query: mongo_query, update: { $pull: pull_args } };
+    }
+};
 exports.MongoDBAdaptor = MongoDBAdaptor;

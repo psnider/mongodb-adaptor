@@ -12,14 +12,13 @@ var ObjectId                            = mongoose.Schema.Types.ObjectId
 import path                             = require('path')
 import tmp                              = require('tmp')
 
-import configure                        = require('configure-local')
-import {UpdateFieldCommand} from 'document-database-if'
-import {FieldsUsedInTests} from 'document-database-tests'
+import configure                        = require('@sabbatical/configure-local')
+import {UpdateFieldCommand} from '@sabbatical/document-database'
+import {FieldsUsedInTests, UpdateConfiguration, test_create, test_read, test_replace, test_del, test_update, test_find} from '@sabbatical/document-database/tests'
 
 
-import {MongoDaemonRunner} from 'mongod-runner'
-import {MongoDBAdaptor, UNSUPPORTED_UPDATE_CMDS} from 'mongodb-adaptor'
-import {UpdateConfiguration, test_create, test_read, test_replace, test_del, test_update, test_find} from 'document-database-tests'
+import {MongoDaemonRunner} from '@sabbatical/mongod-runner'
+import {MongoDBAdaptor, UNSUPPORTED_UPDATE_CMDS} from '@sabbatical/mongodb-adaptor'
 
 process.on('uncaughtException', function(error) {
   console.log('Found uncaughtException: ' + error)

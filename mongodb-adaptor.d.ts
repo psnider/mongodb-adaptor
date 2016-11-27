@@ -1,6 +1,6 @@
 import mongoose                         = require('mongoose')
-import {ArrayCallback, Conditions, Cursor, DocumentBase, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from 'document-database-if'
-import {UnsupportedUpdateCmds} from 'document-database-tests'
+import {ArrayCallback, Conditions, Cursor, DocumentBase, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from '@sabbatical/document-database'
+import {UnsupportedUpdateCmds} from '@sabbatical/document-database/tests'
 
 type DocumentType = DocumentBase
 
@@ -12,10 +12,11 @@ export interface MongodbUpdateArgs {
 
 
 export var UNSUPPORTED_UPDATE_CMDS: UnsupportedUpdateCmds
+//export var SUPPORTED_DATABASE_FEATURES: SupportedFeatures
 
 
 export class MongoDBAdaptor implements DocumentDatabase {
-    static  createObjectId() : string 
+    static createObjectId() : string 
     static isEmpty(obj): boolean
     static deepEqualObjOrMongo(lhs, rhs) : boolean
     static convertUpdateCommandToMongo(update : UpdateFieldCommand) : MongodbUpdateArgs

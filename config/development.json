@@ -3,21 +3,6 @@
     "env": {
         "HOSTNAME": "localhost",
         "PORT": 8375,
-        "MONGO_PATH": "mongodb://localhost/test",
-        "comments": {
-            "local MONGO_PATH": "mongodb://localhost/test",
-            "heroku MONGO_PATH": "mongodb://bigdog:inudognekocat@ds061199.mongolab.com:61199/heroku_app28135299"
-        }
-    },
-    "notifications": {
-        "NOTIFICATIONS_EMAIL_FILENAME": "config/reminder_email.email.html",     
-        "NOTIFICATIONS_EMAIL_SENDER":   "pets.email.0@gmail.com"        
-    },
-    "logging": {
-        "LOG_REQUEST_DATA": true,
-        "LOG_RESPONSE_DATA": true
-    },
-    "test": {
-        "SKIP_RECREATE_UPCOMING_TASKS": true
+        "MONGO_PATH": "mongodb://localhost/test"
     }
 }

@@ -1,18 +1,15 @@
 {
-  "name": "mongodb-adaptor",
-  "version": "0.0.1",
+  "name": "@sabbatical/mongodb-adaptor",
+  "version": "0.1.0",
   "description": "A database adaptor for using MongoDB.",
-  "main": "generated/src/ts/mongodb-adaptor.js",
+  "main": "./mongodb-adaptor.js",
   "keywords": [],
   "private": false,
   "scripts": {
-    "postinstall": "typings install",
-    "install-in-node_modules": "bin/install-in-node_modules.sh",
-    "build": "npm run install-in-node_modules && tsc --project .",
-    "reports": "bin/run-reports.sh",
-    "reinstall": "rm -fr node_modules typings && npm install",
-    "clean": "rm -fr generated reports",
-    "test": "npm run build && NODE_PATH=.:generated/src/ts   mocha -R spec generated/test/ts/mongodb-adaptor.tests.js"
+    "build": "bin/build-and-install-in-node_modules.sh",
+    "clean": "rm -fr *.js node_modules/@sabbatical/mongodb-adaptor",
+    "test-only": "DISABLE_LOGGING=true mocha -R spec mongodb-adaptor.tests.js",
+    "test": "npm run clean && npm run build && npm run test-only"
   },
   "author": {
     "name": "Peter Snider",
@@ -20,20 +17,23 @@
   },
   "license": "MIT",
   "dependencies": {
-    "configure-local": "github:psnider/configure-local",
-    "document-database-if": "github:psnider/document-database-if",
-    "document-database-tests": "github:psnider/document-database-tests",
-    "mongod-runner": "github:psnider/mongod-runner",
+    "@sabbatical/configure-local": "1.0.2",
+    "@sabbatical/document-database": "0.2.1",
+    "@sabbatical/mongoose-connector": "0.1.1",
     "mongoose": "4.6.5",
-    "mongoose-connector": "github:psnider/mongoose-connector",
-    "pino": "2.14.0"
+    "pino": "3.0.1"
   },
   "devDependencies": {
+    "@sabbatical/mongod-runner": "0.1.0",
+    "@types/chai": "3.4.34",
+    "@types/mocha": "2.2.33",
+    "@types/mongoose": "4.6.1",
+    "@types/pino": "1.0.5",
+    "@types/tmp": "0.0.31",
     "chai": "3.5.0",
-    "mocha": "3.1.2",
-    "tmp": "0.0.29",
-    "typescript": "2.0.6",
-    "typings": "1.5.0"
+    "mocha": "3.2.0",
+    "tmp": "0.0.31",
+    "typescript": "2.0.10"
   },
   "repository": {
     "type": "git",

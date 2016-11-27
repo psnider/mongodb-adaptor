@@ -3,11 +3,11 @@ import mongoose                         = require('mongoose')
 mongoose.Promise = global.Promise
 import pino                             = require('pino')
 
-import configure                        = require('configure-local')
-import {ArrayCallback, DocumentBase, Conditions, Cursor, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from 'document-database-if'
-import {UnsupportedUpdateCmds} from 'document-database-tests'
-import {MongodbUpdateArgs} from 'mongodb-adaptor'
-import {connect as mongoose_connect, disconnect as mongoose_disconnect} from 'mongoose-connector'
+import configure                        = require('@sabbatical/configure-local')
+import {ArrayCallback, DocumentBase, Conditions, Cursor, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from '@sabbatical/document-database'
+import {UnsupportedUpdateCmds} from '@sabbatical/document-database/tests'
+import {MongodbUpdateArgs} from '../../mongodb-adaptor.d'
+import {connect as mongoose_connect, disconnect as mongoose_disconnect} from '@sabbatical/mongoose-connector'
 
 
 type DocumentType = DocumentBase
@@ -18,6 +18,25 @@ var log = pino({name: 'mongodb-adaptor'})
 
 
 export var UNSUPPORTED_UPDATE_CMDS: UnsupportedUpdateCmds = undefined
+
+// export var SUPPORTED_DATABASE_FEATURES: SupportedFeatures = {
+//     replace: true,
+//     update: {
+//         object: {
+//             set: true, 
+//             unset: true,
+//         },
+//         array: {
+//             set: true, 
+//             unset: true,
+//             insert: true,
+//             remove: true,
+//         }
+//     },
+//     find: {
+//         all: true
+//     }
+// }
 
 
 

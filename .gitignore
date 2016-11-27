@@ -1,7 +1,4 @@
 .DS_Store
-logs/**
 node_modules
-generated/**
-!generated/src/ts/mongodb-adaptor.js
 npm-debug.log*
 _test-output

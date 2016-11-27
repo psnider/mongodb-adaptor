@@ -8,7 +8,7 @@
         "removeComments": false,
         "noLib": false,
         "outDir": ".",
-        "types": ["mongoose" ,"node", "pino", "tmp"]
+        "types": ["chai", "mocha", "mongoose" ,"node", "pino", "tmp"]
     },
     "formatCodeOptions": {
         "indentSize": 4,
@@ -25,7 +25,7 @@
         "placeOpenBraceOnNewLineForControlBlocks": false
     },
     "files": [
-        "src/ts/mongodb-adaptor.ts",
+        "test/ts/mongodb-adaptor.tests.ts",
         "mongodb-adaptor.d.ts"
     ],
     "exclude": []
