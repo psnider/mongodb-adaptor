@@ -55,49 +55,6 @@ export class MongoDBAdaptor implements DocumentDatabase {
     }
 
 
-    // considers null, empty array, and obj._id to all be undefined
-    static  deepEqualObjOrMongo(lhs, rhs) : boolean {
-        function coerceType(value) {
-            if (typeof value === 'null') return undefined
-            if (Array.isArray(value) && (value.length === 0)) return undefined
-            return value
-        }
-        lhs = coerceType(lhs)
-        rhs = coerceType(rhs)
-        if ((lhs == null) && (rhs == null)) {
-            return true;        
-        }
-        if ((lhs == null) || (rhs == null)) {
-            return false
-        }
-        if (Array.isArray(lhs) && Array.isArray(rhs)) {
-            if (lhs.length !== rhs.length) {
-                return false
-            } else {
-                return lhs.every((element, i) => {
-                    return MongoDBAdaptor.deepEqualObjOrMongo(element, rhs[i])
-                })
-            }
-        } else if ((lhs instanceof Date) && (rhs instanceof Date)) {
-            return (lhs.getTime() == rhs.getTime())
-        } else if ((typeof lhs === 'object') && (typeof rhs === 'object')) {
-            var lhs_keys = Object.keys(lhs)
-            var rhs_keys = Object.keys(rhs)
-            // check each key, because a missing key is equivalent to an empty value at an existing key
-            return lhs_keys.every((key) => {
-                if (key === '_id') {
-                    // ignore _id fields, but compare id, as id is a user-defined field
-                    return true
-                } else {
-                    return MongoDBAdaptor.deepEqualObjOrMongo(lhs[key], rhs[key])
-                }
-            })
-        } else {
-            return (lhs === rhs)
-        }
-    }
-
-
     private static CONVERT_COMMAND = {
 
         set: function(update : UpdateFieldCommand) {

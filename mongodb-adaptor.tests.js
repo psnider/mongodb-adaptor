@@ -49,43 +49,6 @@ var fields_used_in_tests = {
         createElement: createNewPartComponent
     }
 };
-describe('deepEqualObjOrMongo', function () {
-    var deepEqualObjOrMongo = mongodb_adaptor_1.MongoDBAdaptor.deepEqualObjOrMongo;
-    it('+ should compare null-equivalent values as equal', function () {
-        expect(deepEqualObjOrMongo(null, null)).to.be.true;
-        expect(deepEqualObjOrMongo(undefined, undefined)).to.be.true;
-        expect(deepEqualObjOrMongo(null, undefined)).to.be.true;
-        expect(deepEqualObjOrMongo(undefined, null)).to.be.true;
-    });
-    it('+ should compare null-equivalent and non-null-equivalent values as not equal', function () {
-        expect(deepEqualObjOrMongo(null, 0)).to.be.false;
-        expect(deepEqualObjOrMongo(0, null)).to.be.false;
-        expect(deepEqualObjOrMongo(undefined, 0)).to.be.false;
-        expect(deepEqualObjOrMongo(0, undefined)).to.be.false;
-    });
-    it('+ should compare equivalent arrays as equal', function () {
-        expect(deepEqualObjOrMongo([1, 'b', 3], [1, 'b', 3])).to.be.true;
-    });
-    it('+ should compare unequivalent arrays as not equal', function () {
-        expect(deepEqualObjOrMongo([1, 'b', 3], [1, 'b', 3, 4])).to.be.false;
-        expect(deepEqualObjOrMongo([1, 'b', 3], [1, 'b', 3.01])).to.be.false;
-    });
-    it('+ should compare equivalent objects as equal', function () {
-        expect(deepEqualObjOrMongo({ a: 1, b: 2 }, { b: 2, a: 1 })).to.be.true;
-    });
-    it('+ should compare unequivalent objects as not equal', function () {
-        expect(deepEqualObjOrMongo({ a: 1, b: 2 }, { a: 1, b: 3 })).to.be.false;
-        expect(deepEqualObjOrMongo({ a: 1, b: 2 }, { a: 1, c: 2 })).to.be.false;
-    });
-    it('+ should compare equivalent Dates as equal', function () {
-        var base_time = 1000000000000;
-        expect(deepEqualObjOrMongo(new Date(base_time), new Date(base_time))).to.be.true;
-    });
-    it('+ should compare unequivalent Dates as notequal', function () {
-        var base_time = 1000000000000;
-        expect(deepEqualObjOrMongo(new Date(base_time), new Date(base_time + 2000))).to.be.false;
-    });
-});
 var next_part_number = 0;
 function createNewPart() {
     next_part_number++;
