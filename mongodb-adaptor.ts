@@ -193,14 +193,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
     }
 
 
-    mongodb_path: string
-    model: mongoose.Model<mongoose.Document>
-    db: MongoDBAdaptor
-
-
-    constructor(mongodb_path: string, model: mongoose.Model<mongoose.Document>) {
-        this.mongodb_path = mongodb_path
-        this.model = model
+    constructor(private mongodb_path: string, private model: mongoose.Model<mongoose.Document>) {
     }
 
 
