@@ -50,7 +50,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
     }
 
 
-    static isEmpty(obj): boolean {
+    static isEmpty(obj: {}): boolean {
         return (Object.keys(obj).length === 0)
     }
 
@@ -58,8 +58,8 @@ export class MongoDBAdaptor implements DocumentDatabase {
     private static CONVERT_COMMAND = {
 
         set: function(update : UpdateFieldCommand) {
-            var mongo_query = {}
-            var set_args = {}
+            var mongo_query: any = {}
+            var set_args: any = {}
             if ('element_id' in update) {
                 if ('key_field' in update) {
                     var key_path = update.field + '.' + update.key_field
@@ -87,8 +87,8 @@ export class MongoDBAdaptor implements DocumentDatabase {
 
 
         unset: function(update : UpdateFieldCommand) {
-            var mongo_query = {}
-            var unset_args = {}
+            var mongo_query: any = {}
+            var unset_args: any = {}
             if ('element_id' in update) {
                 if ('key_field' in update) {
                     var key_path = update.field + '.' + update.key_field
@@ -114,16 +114,16 @@ export class MongoDBAdaptor implements DocumentDatabase {
 
 
         insert: function(update : UpdateFieldCommand) {
-            var mongo_query = {}
-            var add_args = {}
+            var mongo_query: any = {}
+            var add_args: any = {}
             add_args[update.field] = update.value
             return {query: mongo_query, update: {$addToSet: add_args}}
         },
 
 
         remove: function(update : UpdateFieldCommand) {
-            var mongo_query = {}
-            var pull_args = {}
+            var mongo_query: any = {}
+            var pull_args: any = {}
             var matcher : any
             if ('element_id' in update) {
                 if ('key_field' in update) {
@@ -144,7 +144,8 @@ export class MongoDBAdaptor implements DocumentDatabase {
 
     static convertUpdateCommandToMongo(update : UpdateFieldCommand) : MongodbUpdateArgs {
         if (update.cmd in MongoDBAdaptor.CONVERT_COMMAND) {
-            var mongo_update = MongoDBAdaptor.CONVERT_COMMAND[update.cmd](update)
+            // TODO: remove this cast
+            var mongo_update = (<any>MongoDBAdaptor.CONVERT_COMMAND)[update.cmd](update)
             return mongo_update
         } else {
             throw new Error('unexpected update.cmd=' + update.cmd + ' field=' + update.field)
@@ -153,7 +154,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
 
 
     static convertUpdateCommandsToMongo(updates : UpdateFieldCommand[]) : MongodbUpdateArgs[] {
-        var mongo_updates = []
+        var mongo_updates: MongodbUpdateArgs[] = []
         for (var i = 0 ; i < updates.length ; ++i) {
             var update = updates[i]
             var mongo_update = MongoDBAdaptor.convertUpdateCommandToMongo(update)
@@ -201,7 +202,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
     connect(done: ErrorOnlyCallback): void
     connect(done?: ErrorOnlyCallback): Promise<void> | void {
         if (done) {
-            var onError = (error) => {
+            var onError = (error: Error) => {
                 log.error({error}, 'mongoose_connect')
             }
             mongoose_connect(this.mongodb_path, onError, done)
@@ -259,7 +260,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
                 done(new Error('_id isnt allowed for create'))
             } else {
                 let document : mongoose.Document = new this.model(obj)
-                document.save((error, saved_doc: mongoose.Document) => {
+                document.save((error: Error, saved_doc: mongoose.Document) => {
                     let result: DocumentType
                     if (!error) {
                         let marshalable_doc: DocumentType = <DocumentType>saved_doc.toObject()
@@ -296,7 +297,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
     read(_ids : DocumentID[], done: ArrayCallback) : void
     read(_id_or_ids : DocumentID | DocumentID[], done?: ObjectOrArrayCallback) : Promise<DocumentType> | Promise<DocumentType[]> | void {
         if (done) {
-            var mongoose_query
+            var mongoose_query: any
             if (Array.isArray(_id_or_ids)) {
                 let _ids = <DocumentID[]>_id_or_ids
                 mongoose_query = this.model.find({
@@ -318,7 +319,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
                         }
                         done(undefined, result)
                     },
-                    (error) => {
+                    (error: Error) => {
                         done(error)
                     }
                 )
@@ -356,12 +357,12 @@ export class MongoDBAdaptor implements DocumentDatabase {
     replace(obj: DocumentType, done: ObjectCallback): void
     replace(obj: DocumentType, done?: ObjectCallback): Promise<DocumentType> | void {
         if (done) {
-            this.model.findById(obj['_id'], function (err, document) {
+            this.model.findById(obj['_id'], function (error: Error, document: mongoose.Document) {
                 // assume that all keys are present in obj
                 for (let key in obj) {
-                    document[key] = obj[key]
+                    (<any>document)[key] = (<any>obj)[key]
                 }
-                document.save((error, saved_doc: mongoose.Document) => {
+                document.save((error: Error, saved_doc: mongoose.Document) => {
                     let result: DocumentType
                     if (!error) {
                         let marshalable_doc: DocumentType = <DocumentType>saved_doc.toObject()
@@ -442,14 +443,14 @@ export class MongoDBAdaptor implements DocumentDatabase {
 
     // @return a Promise with the updated elements
     // TODO: REPAIR: update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback) : Promise<DocumentType> | void {
-    update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback) : any {
-        function getId(conditions) : string {
+    update(conditions: Conditions, updates: UpdateFieldCommand[], done?: ObjectCallback) : any {
+        function getId(conditions: Conditions) : string {
             if ('_id' in conditions) {
-                var condition = conditions._id
-                if (typeof condition == 'string') {
+                var condition = (<any>conditions)._id
+                if (typeof condition === 'string') {
                     return condition
                 } else if (Array.isArray(condition)) {
-                    if (condition.length == 1) {
+                    if (condition.length === 1) {
                         if ((typeof condition[0] == 'string') || (!Array.isArray(condition[0]) && (typeof condition[0] == 'object'))) {
                             return condition[0]
                         } else {
@@ -467,7 +468,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
                 return null
             }
         }
-        var readDoc : (_id) => Promise<DocumentType> = (_id) => {
+        var readDoc : (_id: string) => Promise<DocumentType> = (_id) => {
             let promise = <Promise<DocumentType>>this.read(_id)
             return promise.then(
                 (result) => {
@@ -475,7 +476,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
                 }
             )
         }
-        var chainPromise: (serial_promise: Promise<any>, mongo_update, mongoose_query: mongoose.Query<any>) => Promise<any> = (serial_promise, mongo_update, mongoose_query) => {
+        var chainPromise: (serial_promise: Promise<any>, mongo_update: MongodbUpdateArgs, mongoose_query: mongoose.Query<any>) => Promise<any> = (serial_promise, mongo_update, mongoose_query) => {
             return serial_promise.then(() => {
                 return mongoose_query.lean().exec().then(
                     (result) => {
@@ -499,16 +500,16 @@ export class MongoDBAdaptor implements DocumentDatabase {
                 var _id = getId(conditions)
                 // apply the updates in the order they were given
                 var initial_value : mongoose.Document = <mongoose.Document>{}
-                initial_value['MongoDBAdaptor.update.error'] = 'You should never see this!'
+                ;(<any>initial_value)['MongoDBAdaptor.update.error'] = 'You should never see this!'
                 var serial_promise = Promise.resolve(initial_value)
                 for (var i = 0 ; i < mongo_updates.length ; ++i) {
                     var mongo_update = mongo_updates[i]
                     var merged_conditions = {}
                     for (var key in conditions) {
-                        merged_conditions[key] = conditions[key]
+                        (<any>merged_conditions)[key] = conditions[key]
                     }
                     for (var key in mongo_update.query) {
-                        merged_conditions[key] = mongo_update.query[key]
+                        (<any>merged_conditions)[key] = mongo_update.query[key]
                     }
                     var mongoose_query = this.model.update(merged_conditions, mongo_update.update)
                     // preserve the mongoose_query value to match its promise

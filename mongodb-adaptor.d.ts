@@ -17,7 +17,7 @@ export var UNSUPPORTED_UPDATE_CMDS: UnsupportedUpdateCmds
 
 export class MongoDBAdaptor implements DocumentDatabase {
     static createObjectId() : string 
-    static isEmpty(obj): boolean
+    static isEmpty(obj: {}): boolean
     static convertUpdateCommandToMongo(update : UpdateFieldCommand) : MongodbUpdateArgs
     static convertUpdateCommandsToMongo(updates : UpdateFieldCommand[]) : MongodbUpdateArgs[]
  

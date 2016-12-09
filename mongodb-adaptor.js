@@ -40,6 +40,7 @@ class MongoDBAdaptor {
     }
     static convertUpdateCommandToMongo(update) {
         if (update.cmd in MongoDBAdaptor.CONVERT_COMMAND) {
+            // TODO: remove this cast
             var mongo_update = MongoDBAdaptor.CONVERT_COMMAND[update.cmd](update);
             return mongo_update;
         }
@@ -216,7 +217,7 @@ class MongoDBAdaptor {
     }
     replace(obj, done) {
         if (done) {
-            this.model.findById(obj['_id'], function (err, document) {
+            this.model.findById(obj['_id'], function (error, document) {
                 // assume that all keys are present in obj
                 for (let key in obj) {
                     document[key] = obj[key];
@@ -300,11 +301,11 @@ class MongoDBAdaptor {
         function getId(conditions) {
             if ('_id' in conditions) {
                 var condition = conditions._id;
-                if (typeof condition == 'string') {
+                if (typeof condition === 'string') {
                     return condition;
                 }
                 else if (Array.isArray(condition)) {
-                    if (condition.length == 1) {
+                    if (condition.length === 1) {
                         if ((typeof condition[0] == 'string') || (!Array.isArray(condition[0]) && (typeof condition[0] == 'object'))) {
                             return condition[0];
                         }
