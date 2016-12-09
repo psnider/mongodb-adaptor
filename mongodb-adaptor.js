@@ -169,9 +169,8 @@ class MongoDBAdaptor {
             var mongoose_query;
             if (Array.isArray(_id_or_ids)) {
                 let _ids = _id_or_ids;
-                let mongoose_ids = _ids.map((_id) => { return mongoose.Types.ObjectId.createFromHexString(_id); });
                 mongoose_query = this.model.find({
-                    '_id': { $in: mongoose_ids }
+                    '_id': { $in: _ids }
                 });
             }
             else if ((typeof _id_or_ids == 'string') && (_id_or_ids.length > 0)) {
@@ -194,15 +193,17 @@ class MongoDBAdaptor {
                 });
             }
             else {
-                done(new Error('_id is invalid'));
+                done(new Error('_id_or_ids is invalid'));
             }
         }
         else {
+            // TODO: resolve this typing problem
             return this.read_promisified(_id_or_ids);
         }
     }
     read_promisified(_id_or_ids) {
         return new Promise((resolve, reject) => {
+            // TODO: resolve this typing problem
             this.read(_id_or_ids, (error, result) => {
                 if (!error) {
                     resolve(result);

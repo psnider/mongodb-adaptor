@@ -1,6 +1,6 @@
 {
   "name": "@sabbatical/mongodb-adaptor",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "A database adaptor for using MongoDB.",
   "main": "./mongodb-adaptor.js",
   "keywords": [],
@@ -18,7 +18,7 @@
   "license": "MIT",
   "dependencies": {
     "@sabbatical/configure-local": "1.0.2",
-    "@sabbatical/document-database": "0.3.0",
+    "@sabbatical/document-database": "0.3.1",
     "@sabbatical/mongoose-connector": "0.1.1",
     "mongoose": "4.6.5",
     "pino": "3.0.1"

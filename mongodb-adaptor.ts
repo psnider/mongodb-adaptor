@@ -290,16 +290,17 @@ export class MongoDBAdaptor implements DocumentDatabase {
     }
 
 
-    read(_id_or_ids : DocumentID | DocumentID[]) : Promise<DocumentType | DocumentType[]>
-    read(_id_or_ids : DocumentID | DocumentID[], done: ObjectOrArrayCallback) : void
-    read(_id_or_ids : DocumentID | DocumentID[], done?: ObjectOrArrayCallback) : Promise<DocumentType | DocumentType[]> | void {
+    read(_id : DocumentID) : Promise<DocumentType>
+    read(_id : DocumentID, done: ObjectCallback) : void
+    read(_ids : DocumentID[]) : Promise<DocumentType[]>
+    read(_ids : DocumentID[], done: ArrayCallback) : void
+    read(_id_or_ids : DocumentID | DocumentID[], done?: ObjectOrArrayCallback) : Promise<DocumentType> | Promise<DocumentType[]> | void {
         if (done) {
             var mongoose_query
             if (Array.isArray(_id_or_ids)) {
                 let _ids = <DocumentID[]>_id_or_ids
-                let mongoose_ids = _ids.map((_id) => {return mongoose.Types.ObjectId.createFromHexString(_id)})
                 mongoose_query = this.model.find({
-                    '_id': { $in: mongoose_ids}
+                    '_id': { $in: _ids}
                 });
             } else if ((typeof _id_or_ids == 'string') && (_id_or_ids.length > 0)){
                 let _id = <DocumentID>_id_or_ids
@@ -322,18 +323,22 @@ export class MongoDBAdaptor implements DocumentDatabase {
                     }
                 )
             } else {
-                done(new Error('_id is invalid'))
+                done(new Error('_id_or_ids is invalid'))
             }
 
         } else {
-            return this.read_promisified(_id_or_ids)
+            // TODO: resolve this typing problem
+            return this.read_promisified(<any>_id_or_ids)
         }
     }
 
 
-    private read_promisified(_id_or_ids: DocumentID | DocumentID[]): Promise<DocumentType | DocumentType[]> {
+    private read_promisified(_id : DocumentID) : Promise<DocumentType>
+    private read_promisified(_ids : DocumentID[]) : Promise<DocumentType[]>
+    private read_promisified(_id_or_ids: DocumentID | DocumentID[]): Promise<DocumentType> | Promise<DocumentType[]> {
         return new Promise((resolve, reject) => {
-            this.read(_id_or_ids, (error, result) => {
+            // TODO: resolve this typing problem
+            this.read(<any>_id_or_ids, (error, result) => {
                 if (!error)  {
                     resolve(result)
                 } else {
