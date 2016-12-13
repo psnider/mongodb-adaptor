@@ -153,7 +153,7 @@ describe('MongoDBAdaptor', function() {
         mongo_daemon = new MongoDaemonRunner({port: PORT, use_tmp_dir: true, disable_logging: true})
         mongo_daemon.start((error) => {
             if (!error) {
-                // TODO: move to configuration
+                // TODO: [mongodb-adaptor.tests.ts should use config for mongo_path](https://github.com/psnider/mongodb-adaptor/issues/4)
                 var mongo_path = `localhost:${PORT}/test`
                 PARTS_ADAPTOR = new MongoDBAdaptor(mongo_path, Parts.Model)
                 PARTS_ADAPTOR.connect((error) => {

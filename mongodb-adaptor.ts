@@ -144,7 +144,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
 
     static convertUpdateCommandToMongo(update : UpdateFieldCommand) : MongodbUpdateArgs {
         if (update.cmd in MongoDBAdaptor.CONVERT_COMMAND) {
-            // TODO: remove this cast
+            // TODO: [remove <any> cast from access to CONVERT_COMMAND](https://github.com/psnider/mongodb-adaptor/issues/2)
             var mongo_update = (<any>MongoDBAdaptor.CONVERT_COMMAND)[update.cmd](update)
             return mongo_update
         } else {
@@ -249,9 +249,6 @@ export class MongoDBAdaptor implements DocumentDatabase {
     }
 
 
-    // create(obj: DocumentType): Promise<DocumentType>
-    // create(obj: DocumentType, done: ObjectCallback): void
-    // TODO: REPAIR: create(obj: DocumentType, done?: ObjectCallback) : Promise<DocumentType> | void {
     create(obj: DocumentType) : Promise<DocumentType>
     create(obj: DocumentType, done: ObjectCallback): void
     create(obj: DocumentType, done?: ObjectCallback) : Promise<DocumentType> | void {
@@ -264,7 +261,6 @@ export class MongoDBAdaptor implements DocumentDatabase {
                     let result: DocumentType
                     if (!error) {
                         let marshalable_doc: DocumentType = <DocumentType>saved_doc.toObject()
-                        // TODO: perhaps toObject should call convertMongoIdsToStrings? 
                         result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc)
                     } else {
                         log.error({function: 'MongoDBAdaptor.create', obj: obj, text: 'db save error', error: error})
@@ -328,7 +324,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
             }
 
         } else {
-            // TODO: resolve this typing problem
+            // TODO: [resolve type declarations for overloaded methods](https://github.com/psnider/mongodb-adaptor/issues/3)
             return this.read_promisified(<any>_id_or_ids)
         }
     }
@@ -338,7 +334,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
     private read_promisified(_ids : DocumentID[]) : Promise<DocumentType[]>
     private read_promisified(_id_or_ids: DocumentID | DocumentID[]): Promise<DocumentType> | Promise<DocumentType[]> {
         return new Promise((resolve, reject) => {
-            // TODO: resolve this typing problem
+            // TODO: [resolve type declarations for overloaded methods](https://github.com/psnider/mongodb-adaptor/issues/3)
             this.read(<any>_id_or_ids, (error, result) => {
                 if (!error)  {
                     resolve(result)
@@ -350,9 +346,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
     }
 
 
-    // TODO: obsolete this function, as all updates should be performed with update()
     // @return a Promise with the created element, if there is no callback
-    // TODO: REPAIR: replace(obj: DocumentType, done?: ObjectCallback) : Promise<DocumentType> | void {
     replace(obj: DocumentType): Promise<DocumentType>
     replace(obj: DocumentType, done: ObjectCallback): void
     replace(obj: DocumentType, done?: ObjectCallback): Promise<DocumentType> | void {
@@ -366,7 +360,6 @@ export class MongoDBAdaptor implements DocumentDatabase {
                     let result: DocumentType
                     if (!error) {
                         let marshalable_doc: DocumentType = <DocumentType>saved_doc.toObject()
-                        // TODO: perhaps toObject should call convertMongoIdsToStrings? 
                         result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc)
                     } else {
                         log.error({function: 'MongoDBAdaptor.replace', obj: obj, text: 'db save error', error: error})
@@ -442,8 +435,9 @@ export class MongoDBAdaptor implements DocumentDatabase {
 
 
     // @return a Promise with the updated elements
-    // TODO: REPAIR: update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback) : Promise<DocumentType> | void {
-    update(conditions: Conditions, updates: UpdateFieldCommand[], done?: ObjectCallback) : any {
+    update(conditions: Conditions, updates: UpdateFieldCommand[]) : Promise<DocumentType>
+    update(conditions: Conditions, updates: UpdateFieldCommand[], done: ObjectCallback) : void
+    update(conditions: Conditions, updates: UpdateFieldCommand[], done?: ObjectCallback) : Promise<DocumentType> | void {
         function getId(conditions: Conditions) : string {
             if ('_id' in conditions) {
                 var condition = (<any>conditions)._id
@@ -549,10 +543,9 @@ export class MongoDBAdaptor implements DocumentDatabase {
     }
 
 
-    // del(_id: DocumentID) : Promise<void>
-    // del(_id: DocumentID, done: ErrorOnlyCallback) : void
-    // TODO: REPAIR: del(_id: DocumentID, done?: ErrorOnlyCallback) : Promise<null> | void {
-    del(_id: DocumentID, done?: ErrorOnlyCallback) : any {
+    del(_id: DocumentID) : Promise<void>
+    del(_id: DocumentID, done: ErrorOnlyCallback) : void
+    del(_id: DocumentID, done?: ErrorOnlyCallback) : Promise<null> | void {
         if (done) {
             if (_id != null) {
                 var mongoose_query = this.model.remove({_id})
