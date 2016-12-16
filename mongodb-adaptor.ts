@@ -230,8 +230,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
     disconnect(done: ErrorOnlyCallback): void
     disconnect(done?: ErrorOnlyCallback): Promise<void> | void {
         if (done) {
-            // TODO: disable while we use the default connection
-            // TODO: once we use separately managed connections, re-enable disconnect functions.
+            // TODO: [re-enable connect() once we no longer use the default mongoose connection](https://github.com/psnider/mongodb-adaptor/issues/5)
             // mongoose_disconnect(done)
             done()
         } else {
