@@ -6,9 +6,11 @@ const chai = require('chai');
 var expect = chai.expect;
 const mongoose = require('mongoose');
 var ObjectId = mongoose.Schema.Types.ObjectId;
+const pino = require('pino');
 const tests_1 = require('@sabbatical/document-database/tests');
 const mongod_runner_1 = require('@sabbatical/mongod-runner');
 const mongodb_adaptor_1 = require('@sabbatical/mongodb-adaptor');
+const mongoose_connector_1 = require('@sabbatical/mongoose-connector');
 process.on('uncaughtException', function (error) {
     console.log('Found uncaughtException: ' + error);
 });
@@ -75,16 +77,20 @@ describe('MongoDBAdaptor', function () {
     var PART_ID = '123400000000000000000000';
     var COMPONENT_PART_ID = '123411111111111111111111';
     var COMPONENT_PART_2_ID = '123422222222222222222222';
+    var enable_logging = (process.env.DISABLE_LOGGING == null) || ((process.env.DISABLE_LOGGING.toLowerCase() !== 'true') && (process.env.DISABLE_LOGGING !== '1'));
+    var log = pino({ name: 'tests', enabled: enable_logging });
     var mongo_daemon;
+    var shared_connections;
     var PARTS_ADAPTOR;
     function getPartsAdaptor() { return PARTS_ADAPTOR; }
     before(function (done) {
         mongo_daemon = new mongod_runner_1.MongoDaemonRunner({ port: PORT, use_tmp_dir: true, disable_logging: true });
         mongo_daemon.start((error) => {
             if (!error) {
-                // TODO: move to configuration
-                var mongo_path = `localhost:${PORT}/test`;
-                PARTS_ADAPTOR = new mongodb_adaptor_1.MongoDBAdaptor(mongo_path, Parts.Model);
+                shared_connections = new mongoose_connector_1.SharedConnections(log);
+                // TODO: [mongodb-adaptor.tests.ts should use config for mongo_path](https://github.com/psnider/mongodb-adaptor/issues/4)
+                var mongodb_path = `localhost:${PORT}/test`;
+                PARTS_ADAPTOR = new mongodb_adaptor_1.MongoDBAdaptor('mongodb-adaptor-test', mongodb_path, shared_connections, Parts.Model);
                 PARTS_ADAPTOR.connect((error) => {
                     done(error);
                 });

@@ -10,15 +10,15 @@ import child_process                    = require('child_process')
 import mongoose                         = require('mongoose')
 var ObjectId                            = mongoose.Schema.Types.ObjectId
 import path                             = require('path')
+import pino                             = require('pino')
 import tmp                              = require('tmp')
 
 import configure                        = require('@sabbatical/configure-local')
 import {UpdateFieldCommand} from '@sabbatical/document-database'
 import {FieldsUsedInTests, UpdateConfiguration, test_create, test_read, test_replace, test_del, test_update, test_find} from '@sabbatical/document-database/tests'
-
-
 import {MongoDaemonRunner} from '@sabbatical/mongod-runner'
 import {MongoDBAdaptor, UNSUPPORTED_UPDATE_CMDS} from '@sabbatical/mongodb-adaptor'
+import {SharedConnections} from '@sabbatical/mongoose-connector'
 
 process.on('uncaughtException', function(error) {
   console.log('Found uncaughtException: ' + error)
@@ -143,7 +143,10 @@ describe('MongoDBAdaptor', function() {
     var COMPONENT_PART_ID = '123411111111111111111111'
     var COMPONENT_PART_2_ID = '123422222222222222222222'
 
+    var enable_logging = (process.env.DISABLE_LOGGING == null) || ((process.env.DISABLE_LOGGING.toLowerCase() !== 'true') && (process.env.DISABLE_LOGGING !== '1'))
+    var log: pino.Logger = pino({name: 'tests', enabled: enable_logging})
     var mongo_daemon: MongoDaemonRunner
+    var shared_connections: SharedConnections
 
     var PARTS_ADAPTOR: MongoDBAdaptor
 
@@ -153,9 +156,11 @@ describe('MongoDBAdaptor', function() {
         mongo_daemon = new MongoDaemonRunner({port: PORT, use_tmp_dir: true, disable_logging: true})
         mongo_daemon.start((error) => {
             if (!error) {
+                shared_connections = new SharedConnections(log)
                 // TODO: [mongodb-adaptor.tests.ts should use config for mongo_path](https://github.com/psnider/mongodb-adaptor/issues/4)
-                var mongo_path = `localhost:${PORT}/test`
-                PARTS_ADAPTOR = new MongoDBAdaptor(mongo_path, Parts.Model)
+                var mongodb_path = `localhost:${PORT}/test`
+                PARTS_ADAPTOR = new MongoDBAdaptor('mongodb-adaptor-test', mongodb_path, shared_connections, Parts.Model)
+
                 PARTS_ADAPTOR.connect((error) => {
                     done(error)
                 })

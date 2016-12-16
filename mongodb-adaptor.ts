@@ -7,7 +7,7 @@ import configure                        = require('@sabbatical/configure-local')
 import {ArrayCallback, DocumentBase, Conditions, Cursor, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from '@sabbatical/document-database'
 import {UnsupportedUpdateCmds} from '@sabbatical/document-database/tests'
 import {MongodbUpdateArgs} from './mongodb-adaptor.d'
-import {connect as mongoose_connect, disconnect as mongoose_disconnect} from '@sabbatical/mongoose-connector'
+import {SharedConnections} from '@sabbatical/mongoose-connector'
 
 
 type DocumentType = DocumentBase
@@ -194,7 +194,8 @@ export class MongoDBAdaptor implements DocumentDatabase {
     }
 
 
-    constructor(private mongodb_path: string, private model: mongoose.Model<mongoose.Document>) {
+    constructor(private client_name: string, private mongodb_path: string, private shared_connections: SharedConnections, private model: mongoose.Model<mongoose.Document>) {
+        this.shared_connections = shared_connections
     }
 
 
@@ -205,7 +206,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
             var onError = (error: Error) => {
                 log.error({error}, 'mongoose_connect')
             }
-            mongoose_connect(this.mongodb_path, onError, done)
+            this.shared_connections.connect(this.client_name, this.mongodb_path, {onError, connectDone: done})
         } else {
             return this.connect_promisified()
         }
@@ -229,7 +230,10 @@ export class MongoDBAdaptor implements DocumentDatabase {
     disconnect(done: ErrorOnlyCallback): void
     disconnect(done?: ErrorOnlyCallback): Promise<void> | void {
         if (done) {
-            mongoose_disconnect(done)
+            // TODO: disable while we use the default connection
+            // TODO: once we use separately managed connections, re-enable disconnect functions.
+            // mongoose_disconnect(done)
+            done()
         } else {
             return this.disconnect_promisified()
         }

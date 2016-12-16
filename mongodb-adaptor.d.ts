@@ -1,6 +1,7 @@
 import mongoose                         = require('mongoose')
 import {ArrayCallback, Conditions, Cursor, DocumentBase, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from '@sabbatical/document-database'
 import {UnsupportedUpdateCmds} from '@sabbatical/document-database/tests'
+import {SharedConnections} from '@sabbatical/mongoose-connector'
 
 type DocumentType = DocumentBase
 
@@ -21,9 +22,11 @@ export class MongoDBAdaptor implements DocumentDatabase {
     static convertUpdateCommandToMongo(update : UpdateFieldCommand) : MongodbUpdateArgs
     static convertUpdateCommandsToMongo(updates : UpdateFieldCommand[]) : MongodbUpdateArgs[]
  
-    constructor(mongodb_path: string, model: mongoose.Model<mongoose.Document>)
+    constructor(client_name: string, mongodb_path: string, shared_connections: SharedConnections, model: mongoose.Model<mongoose.Document>)
     connect(done: ErrorOnlyCallback): void
     connect() : Promise<void>
+// TODO: this remains in the interface, but is disabled, while we use the default connection
+// TODO: once we use separately managed connections, re-enable disconnect functions.
     disconnect(done: ErrorOnlyCallback): void
     disconnect() : Promise<void>
     create(obj: DocumentType): Promise<DocumentType>

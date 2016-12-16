@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 // Use native promises
 mongoose.Promise = global.Promise;
 const pino = require('pino');
-const mongoose_connector_1 = require('@sabbatical/mongoose-connector');
 var log = pino({ name: 'mongodb-adaptor' });
 exports.UNSUPPORTED_UPDATE_CMDS = undefined;
 // export var SUPPORTED_DATABASE_FEATURES: SupportedFeatures = {
@@ -27,9 +26,12 @@ exports.UNSUPPORTED_UPDATE_CMDS = undefined;
 // This adaptor converts application queries into Mongo queries
 // and the query results into application results, suitable for use by cscFramework
 class MongoDBAdaptor {
-    constructor(mongodb_path, model) {
+    constructor(client_name, mongodb_path, shared_connections, model) {
+        this.client_name = client_name;
         this.mongodb_path = mongodb_path;
+        this.shared_connections = shared_connections;
         this.model = model;
+        this.shared_connections = shared_connections;
     }
     static createObjectId() {
         var _id = new mongoose.Types.ObjectId;
@@ -40,7 +42,7 @@ class MongoDBAdaptor {
     }
     static convertUpdateCommandToMongo(update) {
         if (update.cmd in MongoDBAdaptor.CONVERT_COMMAND) {
-            // TODO: remove this cast
+            // TODO: [remove <any> cast from access to CONVERT_COMMAND](https://github.com/psnider/mongodb-adaptor/issues/2)
             var mongo_update = MongoDBAdaptor.CONVERT_COMMAND[update.cmd](update);
             return mongo_update;
         }
@@ -90,7 +92,7 @@ class MongoDBAdaptor {
             var onError = (error) => {
                 log.error({ error }, 'mongoose_connect');
             };
-            mongoose_connector_1.connect(this.mongodb_path, onError, done);
+            this.shared_connections.connect(this.client_name, this.mongodb_path, { onError, connectDone: done });
         }
         else {
             return this.connect_promisified();
@@ -110,7 +112,10 @@ class MongoDBAdaptor {
     }
     disconnect(done) {
         if (done) {
-            mongoose_connector_1.disconnect(done);
+            // TODO: disable while we use the default connection
+            // TODO: once we use separately managed connections, re-enable disconnect functions.
+            // mongoose_disconnect(done)
+            done();
         }
         else {
             return this.disconnect_promisified();
@@ -139,7 +144,6 @@ class MongoDBAdaptor {
                     let result;
                     if (!error) {
                         let marshalable_doc = saved_doc.toObject();
-                        // TODO: perhaps toObject should call convertMongoIdsToStrings? 
                         result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc);
                     }
                     else {
@@ -198,13 +202,13 @@ class MongoDBAdaptor {
             }
         }
         else {
-            // TODO: resolve this typing problem
+            // TODO: [resolve type declarations for overloaded methods](https://github.com/psnider/mongodb-adaptor/issues/3)
             return this.read_promisified(_id_or_ids);
         }
     }
     read_promisified(_id_or_ids) {
         return new Promise((resolve, reject) => {
-            // TODO: resolve this typing problem
+            // TODO: [resolve type declarations for overloaded methods](https://github.com/psnider/mongodb-adaptor/issues/3)
             this.read(_id_or_ids, (error, result) => {
                 if (!error) {
                     resolve(result);
@@ -226,7 +230,6 @@ class MongoDBAdaptor {
                     let result;
                     if (!error) {
                         let marshalable_doc = saved_doc.toObject();
-                        // TODO: perhaps toObject should call convertMongoIdsToStrings? 
                         result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc);
                     }
                     else {
@@ -295,8 +298,6 @@ class MongoDBAdaptor {
             });
         });
     }
-    // @return a Promise with the updated elements
-    // TODO: REPAIR: update(conditions: any, updates: UpdateFieldCommand[], done?: ObjectCallback) : Promise<DocumentType> | void {
     update(conditions, updates, done) {
         function getId(conditions) {
             if ('_id' in conditions) {
@@ -400,9 +401,6 @@ class MongoDBAdaptor {
             });
         });
     }
-    // del(_id: DocumentID) : Promise<void>
-    // del(_id: DocumentID, done: ErrorOnlyCallback) : void
-    // TODO: REPAIR: del(_id: DocumentID, done?: ErrorOnlyCallback) : Promise<null> | void {
     del(_id, done) {
         if (done) {
             if (_id != null) {
