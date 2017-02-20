@@ -23,7 +23,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
     constructor(client_name: string, mongodb_path: string, shared_connections: SharedConnections, model: mongoose.Model<mongoose.Document>)
     connect(done: ErrorOnlyCallback): void
     connect() : Promise<void>
-// TODO: [re-enable connect() once we no longer use the default mongoose connection](https://github.com/psnider/mongodb-adaptor/issues/5)
+// TODO: [re-enable connect() once we no longer use the default mongoose connection](https://github.com/psnider/mongoose-adaptor/issues/5)
     disconnect(done: ErrorOnlyCallback): void
     disconnect() : Promise<void>
     create(obj: DocumentType): Promise<DocumentType>

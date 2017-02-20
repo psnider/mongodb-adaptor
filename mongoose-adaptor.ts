@@ -5,14 +5,14 @@ import pino                             = require('pino')
 
 import configure                        = require('@sabbatical/configure-local')
 import {ArrayCallback, DocumentBase, Conditions, Cursor, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, SupportedFeatures, UpdateFieldCommand} from '@sabbatical/document-database'
-import {MongodbUpdateArgs} from './mongodb-adaptor.d'
+import {MongodbUpdateArgs} from './mongoose-adaptor.d'
 import {SharedConnections} from '@sabbatical/mongoose-connector'
 
 
 type DocumentType = DocumentBase
 
 
-var log = pino({name: 'mongodb-adaptor'})
+var log = pino({name: 'mongoose-adaptor'})
 
 
 
@@ -141,7 +141,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
 
     static convertUpdateCommandToMongo(update : UpdateFieldCommand) : MongodbUpdateArgs {
         if (update.cmd in MongoDBAdaptor.CONVERT_COMMAND) {
-            // TODO: [remove <any> cast from access to CONVERT_COMMAND](https://github.com/psnider/mongodb-adaptor/issues/2)
+            // TODO: [remove <any> cast from access to CONVERT_COMMAND](https://github.com/psnider/mongoose-adaptor/issues/2)
             var mongo_update = (<any>MongoDBAdaptor.CONVERT_COMMAND)[update.cmd](update)
             return mongo_update
         } else {
@@ -227,7 +227,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
     disconnect(done: ErrorOnlyCallback): void
     disconnect(done?: ErrorOnlyCallback): Promise<void> | void {
         if (done) {
-            // TODO: [re-enable connect() once we no longer use the default mongoose connection](https://github.com/psnider/mongodb-adaptor/issues/5)
+            // TODO: [re-enable connect() once we no longer use the default mongoose connection](https://github.com/psnider/mongoose-adaptor/issues/5)
             // mongoose_disconnect(done)
             done()
         } else {
@@ -325,7 +325,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
             }
 
         } else {
-            // TODO: [resolve type declarations for overloaded methods](https://github.com/psnider/mongodb-adaptor/issues/3)
+            // TODO: [resolve type declarations for overloaded methods](https://github.com/psnider/mongoose-adaptor/issues/3)
             return this.read_promisified(<any>_id_or_ids)
         }
     }
@@ -335,7 +335,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
     private read_promisified(_ids : DocumentID[]) : Promise<DocumentType[]>
     private read_promisified(_id_or_ids: DocumentID | DocumentID[]): Promise<DocumentType> | Promise<DocumentType[]> {
         return new Promise((resolve, reject) => {
-            // TODO: [resolve type declarations for overloaded methods](https://github.com/psnider/mongodb-adaptor/issues/3)
+            // TODO: [resolve type declarations for overloaded methods](https://github.com/psnider/mongoose-adaptor/issues/3)
             this.read(<any>_id_or_ids, (error, result) => {
                 if (!error)  {
                     resolve(result)

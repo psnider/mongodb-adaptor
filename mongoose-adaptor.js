@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 // Use native promises
 mongoose.Promise = global.Promise;
 const pino = require('pino');
-var log = pino({ name: 'mongodb-adaptor' });
+var log = pino({ name: 'mongoose-adaptor' });
 exports.SUPPORTED_FEATURES = {
     replace: true,
     update: {
@@ -41,7 +41,7 @@ class MongoDBAdaptor {
     }
     static convertUpdateCommandToMongo(update) {
         if (update.cmd in MongoDBAdaptor.CONVERT_COMMAND) {
-            // TODO: [remove <any> cast from access to CONVERT_COMMAND](https://github.com/psnider/mongodb-adaptor/issues/2)
+            // TODO: [remove <any> cast from access to CONVERT_COMMAND](https://github.com/psnider/mongoose-adaptor/issues/2)
             var mongo_update = MongoDBAdaptor.CONVERT_COMMAND[update.cmd](update);
             return mongo_update;
         }
@@ -111,7 +111,7 @@ class MongoDBAdaptor {
     }
     disconnect(done) {
         if (done) {
-            // TODO: [re-enable connect() once we no longer use the default mongoose connection](https://github.com/psnider/mongodb-adaptor/issues/5)
+            // TODO: [re-enable connect() once we no longer use the default mongoose connection](https://github.com/psnider/mongoose-adaptor/issues/5)
             // mongoose_disconnect(done)
             done();
         }
@@ -201,13 +201,13 @@ class MongoDBAdaptor {
             }
         }
         else {
-            // TODO: [resolve type declarations for overloaded methods](https://github.com/psnider/mongodb-adaptor/issues/3)
+            // TODO: [resolve type declarations for overloaded methods](https://github.com/psnider/mongoose-adaptor/issues/3)
             return this.read_promisified(_id_or_ids);
         }
     }
     read_promisified(_id_or_ids) {
         return new Promise((resolve, reject) => {
-            // TODO: [resolve type declarations for overloaded methods](https://github.com/psnider/mongodb-adaptor/issues/3)
+            // TODO: [resolve type declarations for overloaded methods](https://github.com/psnider/mongoose-adaptor/issues/3)
             this.read(_id_or_ids, (error, result) => {
                 if (!error) {
                     resolve(result);

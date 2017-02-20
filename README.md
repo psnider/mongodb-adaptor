@@ -1,6 +1,7 @@
-# mongodb-adaptor
+# mongoose-adaptor
 
-A database adapator compatible with the document-database-if interface.
+A database adapator for MongoDB using mongoose.js.
+This adaptor is compatible with the document-database interface.
 
 # install
 
@@ -21,7 +22,3 @@ npm run build
 ```
 npm run test
 ```
-
-
-# notes
-Must resolve the type declaration problem documented in this [StackOverflow question](http://stackoverflow.com/questions/40138730/how-can-i-declare-a-function-that-optionally-takes-a-callback-and-returns-a-pro)

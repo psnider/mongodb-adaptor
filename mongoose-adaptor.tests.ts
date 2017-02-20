@@ -17,7 +17,7 @@ import configure                        = require('@sabbatical/configure-local')
 import {UpdateFieldCommand} from '@sabbatical/document-database'
 import {FieldsUsedInTests, test_create, test_read, test_replace, test_del, test_update, test_find} from '@sabbatical/document-database/tests'
 import {MongoDaemonRunner} from '@sabbatical/mongod-runner'
-import {MongoDBAdaptor, SUPPORTED_FEATURES} from '@sabbatical/mongodb-adaptor'
+import {MongoDBAdaptor, SUPPORTED_FEATURES} from '@sabbatical/mongoose-adaptor'
 import {SharedConnections} from '@sabbatical/mongoose-connector'
 
 process.on('uncaughtException', function(error) {
@@ -160,9 +160,9 @@ describe('MongoDBAdaptor', function() {
         mongo_daemon.start((error) => {
             if (!error) {
                 shared_connections = new SharedConnections(log)
-                // TODO: [mongodb-adaptor.tests.ts should use config for mongo_path](https://github.com/psnider/mongodb-adaptor/issues/4)
+                // TODO: [mongoose-adaptor.tests.ts should use config for mongo_path](https://github.com/psnider/mongoose-adaptor/issues/4)
                 var mongodb_path = `localhost:${PORT}/test`
-                PARTS_ADAPTOR = new MongoDBAdaptor('mongodb-adaptor-test', mongodb_path, shared_connections, Parts.Model)
+                PARTS_ADAPTOR = new MongoDBAdaptor('mongoose-adaptor-test', mongodb_path, shared_connections, Parts.Model)
 
                 PARTS_ADAPTOR.connect((error) => {
                     done(error)

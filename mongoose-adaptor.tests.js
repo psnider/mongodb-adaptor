@@ -9,7 +9,7 @@ var ObjectId = mongoose.Schema.Types.ObjectId;
 const pino = require('pino');
 const tests_1 = require('@sabbatical/document-database/tests');
 const mongod_runner_1 = require('@sabbatical/mongod-runner');
-const mongodb_adaptor_1 = require('@sabbatical/mongodb-adaptor');
+const mongoose_adaptor_1 = require('@sabbatical/mongoose-adaptor');
 const mongoose_connector_1 = require('@sabbatical/mongoose-connector');
 process.on('uncaughtException', function (error) {
     console.log('Found uncaughtException: ' + error);
@@ -65,7 +65,7 @@ function createNewPart() {
 }
 function createNewPartComponent() {
     return {
-        part_id: mongodb_adaptor_1.MongoDBAdaptor.createObjectId(),
+        part_id: mongoose_adaptor_1.MongoDBAdaptor.createObjectId(),
         info: {
             quantity: (next_part_number % 2),
             style: ((next_part_number % 2) == 0) ? 'old' : 'new'
@@ -90,9 +90,9 @@ describe('MongoDBAdaptor', function () {
         mongo_daemon.start((error) => {
             if (!error) {
                 shared_connections = new mongoose_connector_1.SharedConnections(log);
-                // TODO: [mongodb-adaptor.tests.ts should use config for mongo_path](https://github.com/psnider/mongodb-adaptor/issues/4)
+                // TODO: [mongoose-adaptor.tests.ts should use config for mongo_path](https://github.com/psnider/mongoose-adaptor/issues/4)
                 var mongodb_path = `localhost:${PORT}/test`;
-                PARTS_ADAPTOR = new mongodb_adaptor_1.MongoDBAdaptor('mongodb-adaptor-test', mongodb_path, shared_connections, Parts.Model);
+                PARTS_ADAPTOR = new mongoose_adaptor_1.MongoDBAdaptor('mongoose-adaptor-test', mongodb_path, shared_connections, Parts.Model);
                 PARTS_ADAPTOR.connect((error) => {
                     done(error);
                 });
@@ -168,7 +168,7 @@ describe('MongoDBAdaptor', function () {
             }
         };
         function test_convertUpdateCommandToMongo(test_desc) {
-            var mongo_update = mongodb_adaptor_1.MongoDBAdaptor.convertUpdateCommandToMongo(test_desc.update_cmd);
+            var mongo_update = mongoose_adaptor_1.MongoDBAdaptor.convertUpdateCommandToMongo(test_desc.update_cmd);
             expect(mongo_update.query).to.deep.equal(test_desc.expected_mongo_query);
             //expect(mongo_update.update).to.deep.equal(test_desc.expected_mongo_update)
         }
@@ -207,15 +207,15 @@ describe('MongoDBAdaptor', function () {
         tests_1.test_read(getPartsAdaptor, createNewPart, fields_used_in_tests);
     });
     describe('replace()', function () {
-        tests_1.test_replace(getPartsAdaptor, createNewPart, fields_used_in_tests, mongodb_adaptor_1.SUPPORTED_FEATURES);
+        tests_1.test_replace(getPartsAdaptor, createNewPart, fields_used_in_tests, mongoose_adaptor_1.SUPPORTED_FEATURES);
     });
     describe('update()', function () {
-        tests_1.test_update(getPartsAdaptor, createNewPart, fields_used_in_tests, mongodb_adaptor_1.SUPPORTED_FEATURES);
+        tests_1.test_update(getPartsAdaptor, createNewPart, fields_used_in_tests, mongoose_adaptor_1.SUPPORTED_FEATURES);
     });
     describe('del()', function () {
         tests_1.test_del(getPartsAdaptor, createNewPart, fields_used_in_tests);
     });
     describe('find()', function () {
-        tests_1.test_find(getPartsAdaptor, createNewPart, fields_used_in_tests, mongodb_adaptor_1.SUPPORTED_FEATURES);
+        tests_1.test_find(getPartsAdaptor, createNewPart, fields_used_in_tests, mongoose_adaptor_1.SUPPORTED_FEATURES);
     });
 });

@@ -1,14 +1,14 @@
 {
-  "name": "@sabbatical/mongodb-adaptor",
-  "version": "0.4.0",
-  "description": "A database adaptor for using MongoDB.",
-  "main": "./mongodb-adaptor.js",
+  "name": "@sabbatical/mongoose-adaptor",
+  "version": "0.4.1",
+  "description": "A database adaptor for using MongoDB with mongoose.js.",
+  "main": "./mongoose-adaptor.js",
   "keywords": [],
   "private": false,
   "scripts": {
     "build": "bin/build-and-install-in-node_modules.sh",
-    "clean": "rm -fr *.js *.map node_modules/@sabbatical/mongodb-adaptor",
-    "test-only": "DISABLE_LOGGING=true mocha -R spec mongodb-adaptor.tests.js",
+    "clean": "rm -fr *.js *.map node_modules/@sabbatical/mongoose-adaptor",
+    "test-only": "DISABLE_LOGGING=true mocha -R spec mongoose-adaptor.tests.js",
     "test": "npm run clean && npm run build && npm run test-only"
   },
   "author": {
@@ -37,7 +37,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:psnider/mongodb-adaptor.git"
+    "url": "git@github.com:psnider/mongoose-adaptor.git"
   },
-  "typings": "./mongodb-adaptor.d.ts"
+  "typings": "./mongoose-adaptor.d.ts"
 }
