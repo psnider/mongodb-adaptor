@@ -4,8 +4,7 @@ mongoose.Promise = global.Promise
 import pino                             = require('pino')
 
 import configure                        = require('@sabbatical/configure-local')
-import {ArrayCallback, DocumentBase, Conditions, Cursor, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from '@sabbatical/document-database'
-import {UnsupportedUpdateCmds} from '@sabbatical/document-database/tests'
+import {ArrayCallback, DocumentBase, Conditions, Cursor, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, SupportedFeatures, UpdateFieldCommand} from '@sabbatical/document-database'
 import {MongodbUpdateArgs} from './mongodb-adaptor.d'
 import {SharedConnections} from '@sabbatical/mongoose-connector'
 
@@ -17,26 +16,24 @@ var log = pino({name: 'mongodb-adaptor'})
 
 
 
-export var UNSUPPORTED_UPDATE_CMDS: UnsupportedUpdateCmds = undefined
-
-// export var SUPPORTED_DATABASE_FEATURES: SupportedFeatures = {
-//     replace: true,
-//     update: {
-//         object: {
-//             set: true, 
-//             unset: true,
-//         },
-//         array: {
-//             set: true, 
-//             unset: true,
-//             insert: true,
-//             remove: true,
-//         }
-//     },
-//     find: {
-//         all: true
-//     }
-// }
+export var SUPPORTED_FEATURES: SupportedFeatures = {
+    replace: true,
+    update: {
+        object: {
+            set: true, 
+            unset: true,
+        },
+        array: {
+            set: true, 
+            unset: true,
+            insert: true,
+            remove: true,
+        }
+    },
+    find: {
+        all: true
+    }
+}
 
 
 
@@ -259,6 +256,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
             if (obj['_id']) {
                 done(new Error('_id isnt allowed for create'))
             } else {
+                obj._obj_ver = 1
                 let document : mongoose.Document = new this.model(obj)
                 document.save((error: Error, saved_doc: mongoose.Document) => {
                     let result: DocumentType
@@ -354,21 +352,21 @@ export class MongoDBAdaptor implements DocumentDatabase {
     replace(obj: DocumentType, done: ObjectCallback): void
     replace(obj: DocumentType, done?: ObjectCallback): Promise<DocumentType> | void {
         if (done) {
-            this.model.findById(obj['_id'], function (error: Error, document: mongoose.Document) {
+            let copy = Object.assign({}, obj)
+            copy._obj_ver = obj._obj_ver + 1
+            this.model.update({_id: obj._id, _obj_ver: obj._obj_ver}, copy, {overwrite: true}, (error: Error, mongo_result: any) => {
                 // assume that all keys are present in obj
-                for (let key in obj) {
-                    (<any>document)[key] = (<any>obj)[key]
-                }
-                document.save((error: Error, saved_doc: mongoose.Document) => {
-                    let result: DocumentType
-                    if (!error) {
-                        let marshalable_doc: DocumentType = <DocumentType>saved_doc.toObject()
-                        result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc)
+                if (!error) {
+                    if (mongo_result.n === 1) {
+                        this.read( obj._id, done)
                     } else {
-                        log.error({function: 'MongoDBAdaptor.replace', obj: obj, text: 'db save error', error: error})
+                        log.error({function: 'MongoDBAdaptor.replace', obj, text: `db replace count=${mongo_result.n}`})
+                        done(new Error(`db replace count=${mongo_result.n}`))
                     }
-                    done(error, result)
-                })
+                } else {
+                    log.error({function: 'MongoDBAdaptor.replace', obj, text: 'db replace error', error})
+                    done(error)
+                }
             })
         } else {
             return this.replace_promisified(obj)
@@ -438,33 +436,9 @@ export class MongoDBAdaptor implements DocumentDatabase {
 
 
     // @return a Promise with the updated elements
-    update(conditions: Conditions, updates: UpdateFieldCommand[]) : Promise<DocumentType>
-    update(conditions: Conditions, updates: UpdateFieldCommand[], done: ObjectCallback) : void
-    update(conditions: Conditions, updates: UpdateFieldCommand[], done?: ObjectCallback) : Promise<DocumentType> | void {
-        function getId(conditions: Conditions) : string {
-            if ('_id' in conditions) {
-                var condition = (<any>conditions)._id
-                if (typeof condition === 'string') {
-                    return condition
-                } else if (Array.isArray(condition)) {
-                    if (condition.length === 1) {
-                        if ((typeof condition[0] == 'string') || (!Array.isArray(condition[0]) && (typeof condition[0] == 'object'))) {
-                            return condition[0]
-                        } else {
-                            return null
-                        }
-                    } else {
-                        return null
-                    }
-                } else if (typeof condition == 'object') {
-                    return condition
-                } else {
-                    return null
-                }
-            } else {
-                return null
-            }
-        }
+    update(_id: DocumentID, _obj_ver: number, updates: UpdateFieldCommand[]) : Promise<DocumentType>
+    update(_id: DocumentID, _obj_ver: number, updates: UpdateFieldCommand[], done: ObjectCallback) : void
+    update(_id: DocumentID, _obj_ver: number, updates: UpdateFieldCommand[], done?: ObjectCallback) : Promise<DocumentType> | void {
         var readDoc : (_id: string) => Promise<DocumentType> = (_id) => {
             let promise = <Promise<DocumentType>>this.read(_id)
             return promise.then(
@@ -477,7 +451,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
             return serial_promise.then(() => {
                 return mongoose_query.lean().exec().then(
                     (result) => {
-                        MongoDBAdaptor.convertMongoIdsToStrings(mongo_update)
+                        MongoDBAdaptor.convertMongoIdsToStrings(result)
                         return result
                     }
                 )
@@ -491,23 +465,24 @@ export class MongoDBAdaptor implements DocumentDatabase {
                 return                
             }
             if (mongo_updates.length == 0) {
-                var error = new Error('no updates specified in update command for conditions=' + JSON.stringify(conditions))
+                var error = new Error(`no updates specified in update command for _id=${_id}`)
                 done(error)
             } else {
-                var _id = getId(conditions)
+                // TODO: figure out how to do this in one call
                 // apply the updates in the order they were given
                 var initial_value : mongoose.Document = <mongoose.Document>{}
                 ;(<any>initial_value)['MongoDBAdaptor.update.error'] = 'You should never see this!'
                 var serial_promise = Promise.resolve(initial_value)
+                let obj_ver_update = {query: {}, update: {$inc: {_obj_ver: 1}}}
+                mongo_updates.push(obj_ver_update)
                 for (var i = 0 ; i < mongo_updates.length ; ++i) {
                     var mongo_update = mongo_updates[i]
-                    var merged_conditions = {}
-                    for (var key in conditions) {
-                        (<any>merged_conditions)[key] = conditions[key]
-                    }
+                    var merged_conditions: any = {}
                     for (var key in mongo_update.query) {
-                        (<any>merged_conditions)[key] = mongo_update.query[key]
+                        merged_conditions[key] = mongo_update.query[key]
                     }
+                    ;(<any>merged_conditions)['_id'] = _id
+                    ;(<any>merged_conditions)['_obj_ver'] = _obj_ver
                     var mongoose_query = this.model.update(merged_conditions, mongo_update.update)
                     // preserve the mongoose_query value to match its promise
                     serial_promise = chainPromise(serial_promise, mongo_update, mongoose_query)
@@ -528,14 +503,14 @@ export class MongoDBAdaptor implements DocumentDatabase {
                 )
             }
         } else {
-            return this.update_promisified(conditions, updates)
+            return this.update_promisified(_id, _obj_ver, updates)
         }
     }
 
 
-    private update_promisified(conditions: any, updates: UpdateFieldCommand[]): Promise<DocumentType> {
+    private update_promisified(_id: DocumentID, _obj_ver: number, updates: UpdateFieldCommand[]): Promise<DocumentType> {
         return new Promise((resolve, reject) => {
-            this.update(conditions, updates, (error, result) => {
+            this.update(_id, _obj_ver, updates, (error: Error, result: DocumentType) => {
                 if (!error)  {
                     resolve(result)
                 } else {

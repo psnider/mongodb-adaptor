@@ -4,25 +4,24 @@ const mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
 const pino = require('pino');
 var log = pino({ name: 'mongodb-adaptor' });
-exports.UNSUPPORTED_UPDATE_CMDS = undefined;
-// export var SUPPORTED_DATABASE_FEATURES: SupportedFeatures = {
-//     replace: true,
-//     update: {
-//         object: {
-//             set: true, 
-//             unset: true,
-//         },
-//         array: {
-//             set: true, 
-//             unset: true,
-//             insert: true,
-//             remove: true,
-//         }
-//     },
-//     find: {
-//         all: true
-//     }
-// }
+exports.SUPPORTED_FEATURES = {
+    replace: true,
+    update: {
+        object: {
+            set: true,
+            unset: true,
+        },
+        array: {
+            set: true,
+            unset: true,
+            insert: true,
+            remove: true,
+        }
+    },
+    find: {
+        all: true
+    }
+};
 // This adaptor converts application queries into Mongo queries
 // and the query results into application results, suitable for use by cscFramework
 class MongoDBAdaptor {
@@ -112,8 +111,7 @@ class MongoDBAdaptor {
     }
     disconnect(done) {
         if (done) {
-            // TODO: disable while we use the default connection
-            // TODO: once we use separately managed connections, re-enable disconnect functions.
+            // TODO: [re-enable connect() once we no longer use the default mongoose connection](https://github.com/psnider/mongodb-adaptor/issues/5)
             // mongoose_disconnect(done)
             done();
         }
@@ -139,6 +137,7 @@ class MongoDBAdaptor {
                 done(new Error('_id isnt allowed for create'));
             }
             else {
+                obj._obj_ver = 1;
                 let document = new this.model(obj);
                 document.save((error, saved_doc) => {
                     let result;
@@ -221,22 +220,23 @@ class MongoDBAdaptor {
     }
     replace(obj, done) {
         if (done) {
-            this.model.findById(obj['_id'], function (error, document) {
+            let copy = Object.assign({}, obj);
+            copy._obj_ver = obj._obj_ver + 1;
+            this.model.update({ _id: obj._id, _obj_ver: obj._obj_ver }, copy, { overwrite: true }, (error, mongo_result) => {
                 // assume that all keys are present in obj
-                for (let key in obj) {
-                    document[key] = obj[key];
-                }
-                document.save((error, saved_doc) => {
-                    let result;
-                    if (!error) {
-                        let marshalable_doc = saved_doc.toObject();
-                        result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc);
+                if (!error) {
+                    if (mongo_result.n === 1) {
+                        this.read(obj._id, done);
                     }
                     else {
-                        log.error({ function: 'MongoDBAdaptor.replace', obj: obj, text: 'db save error', error: error });
+                        log.error({ function: 'MongoDBAdaptor.replace', obj, text: `db replace count=${mongo_result.n}` });
+                        done(new Error(`db replace count=${mongo_result.n}`));
                     }
-                    done(error, result);
-                });
+                }
+                else {
+                    log.error({ function: 'MongoDBAdaptor.replace', obj, text: 'db replace error', error });
+                    done(error);
+                }
             });
         }
         else {
@@ -298,37 +298,7 @@ class MongoDBAdaptor {
             });
         });
     }
-    update(conditions, updates, done) {
-        function getId(conditions) {
-            if ('_id' in conditions) {
-                var condition = conditions._id;
-                if (typeof condition === 'string') {
-                    return condition;
-                }
-                else if (Array.isArray(condition)) {
-                    if (condition.length === 1) {
-                        if ((typeof condition[0] == 'string') || (!Array.isArray(condition[0]) && (typeof condition[0] == 'object'))) {
-                            return condition[0];
-                        }
-                        else {
-                            return null;
-                        }
-                    }
-                    else {
-                        return null;
-                    }
-                }
-                else if (typeof condition == 'object') {
-                    return condition;
-                }
-                else {
-                    return null;
-                }
-            }
-            else {
-                return null;
-            }
-        }
+    update(_id, _obj_ver, updates, done) {
         var readDoc = (_id) => {
             let promise = this.read(_id);
             return promise.then((result) => {
@@ -338,7 +308,7 @@ class MongoDBAdaptor {
         var chainPromise = (serial_promise, mongo_update, mongoose_query) => {
             return serial_promise.then(() => {
                 return mongoose_query.lean().exec().then((result) => {
-                    MongoDBAdaptor.convertMongoIdsToStrings(mongo_update);
+                    MongoDBAdaptor.convertMongoIdsToStrings(result);
                     return result;
                 });
             });
@@ -352,24 +322,26 @@ class MongoDBAdaptor {
                 return;
             }
             if (mongo_updates.length == 0) {
-                var error = new Error('no updates specified in update command for conditions=' + JSON.stringify(conditions));
+                var error = new Error(`no updates specified in update command for _id=${_id}`);
                 done(error);
             }
             else {
-                var _id = getId(conditions);
+                // TODO: figure out how to do this in one call
                 // apply the updates in the order they were given
                 var initial_value = {};
                 initial_value['MongoDBAdaptor.update.error'] = 'You should never see this!';
                 var serial_promise = Promise.resolve(initial_value);
+                let obj_ver_update = { query: {}, update: { $inc: { _obj_ver: 1 } } };
+                mongo_updates.push(obj_ver_update);
                 for (var i = 0; i < mongo_updates.length; ++i) {
                     var mongo_update = mongo_updates[i];
                     var merged_conditions = {};
-                    for (var key in conditions) {
-                        merged_conditions[key] = conditions[key];
-                    }
                     for (var key in mongo_update.query) {
                         merged_conditions[key] = mongo_update.query[key];
                     }
+                    ;
+                    merged_conditions['_id'] = _id;
+                    merged_conditions['_obj_ver'] = _obj_ver;
                     var mongoose_query = this.model.update(merged_conditions, mongo_update.update);
                     // preserve the mongoose_query value to match its promise
                     serial_promise = chainPromise(serial_promise, mongo_update, mongoose_query);
@@ -386,12 +358,12 @@ class MongoDBAdaptor {
             }
         }
         else {
-            return this.update_promisified(conditions, updates);
+            return this.update_promisified(_id, _obj_ver, updates);
         }
     }
-    update_promisified(conditions, updates) {
+    update_promisified(_id, _obj_ver, updates) {
         return new Promise((resolve, reject) => {
-            this.update(conditions, updates, (error, result) => {
+            this.update(_id, _obj_ver, updates, (error, result) => {
                 if (!error) {
                     resolve(result);
                 }

@@ -29,6 +29,7 @@ var Parts;
         info: DETAILS_SCHEMA_DEF
     };
     var PART_SCHEMA_DEF = {
+        _obj_ver: Number,
         name: String,
         description: String,
         catalog_number: String,
@@ -43,6 +44,7 @@ var fields_used_in_tests = {
     populated_string: 'name',
     unpopulated_string: 'description',
     string_array: { name: 'notes' },
+    unique_key_fieldname: 'catalog_number',
     obj_array: {
         name: 'components',
         key_field: 'part_id',
@@ -199,25 +201,21 @@ describe('MongoDBAdaptor', function () {
         });
     });
     describe('create()', function () {
-        tests_1.test_create(getPartsAdaptor, createNewPart, ['name', 'catalog_number']);
+        tests_1.test_create(getPartsAdaptor, createNewPart, fields_used_in_tests);
     });
     describe('read()', function () {
-        tests_1.test_read(getPartsAdaptor, createNewPart, ['name', 'catalog_number']);
+        tests_1.test_read(getPartsAdaptor, createNewPart, fields_used_in_tests);
     });
     describe('replace()', function () {
-        tests_1.test_replace(getPartsAdaptor, createNewPart, ['name', 'catalog_number']);
+        tests_1.test_replace(getPartsAdaptor, createNewPart, fields_used_in_tests, mongodb_adaptor_1.SUPPORTED_FEATURES);
     });
     describe('update()', function () {
-        var fieldnames = {
-            test: fields_used_in_tests,
-            unsupported: mongodb_adaptor_1.UNSUPPORTED_UPDATE_CMDS
-        };
-        tests_1.test_update(getPartsAdaptor, createNewPart, fieldnames);
+        tests_1.test_update(getPartsAdaptor, createNewPart, fields_used_in_tests, mongodb_adaptor_1.SUPPORTED_FEATURES);
     });
     describe('del()', function () {
-        tests_1.test_del(getPartsAdaptor, createNewPart, ['name', 'catalog_number']);
+        tests_1.test_del(getPartsAdaptor, createNewPart, fields_used_in_tests);
     });
     describe('find()', function () {
-        tests_1.test_find(getPartsAdaptor, createNewPart, 'catalog_number');
+        tests_1.test_find(getPartsAdaptor, createNewPart, fields_used_in_tests, mongodb_adaptor_1.SUPPORTED_FEATURES);
     });
 });

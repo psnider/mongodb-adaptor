@@ -1,6 +1,5 @@
 import mongoose                         = require('mongoose')
-import {ArrayCallback, Conditions, Cursor, DocumentBase, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, UpdateFieldCommand} from '@sabbatical/document-database'
-import {UnsupportedUpdateCmds} from '@sabbatical/document-database/tests'
+import {ArrayCallback, Conditions, Cursor, DocumentBase, DocumentID, DocumentDatabase, ErrorOnlyCallback, Fields, ObjectCallback, ObjectOrArrayCallback, Sort, SupportedFeatures, UpdateFieldCommand} from '@sabbatical/document-database'
 import {SharedConnections} from '@sabbatical/mongoose-connector'
 
 type DocumentType = DocumentBase
@@ -12,8 +11,7 @@ export interface MongodbUpdateArgs {
 }
 
 
-export var UNSUPPORTED_UPDATE_CMDS: UnsupportedUpdateCmds
-//export var SUPPORTED_DATABASE_FEATURES: SupportedFeatures
+export var SUPPORTED_FEATURES: SupportedFeatures
 
 
 export class MongoDBAdaptor implements DocumentDatabase {
@@ -34,8 +32,8 @@ export class MongoDBAdaptor implements DocumentDatabase {
     read(_id_or_ids: DocumentID | DocumentID[], done: ObjectOrArrayCallback) : void
     replace(obj: DocumentType) : Promise<DocumentType>
     replace(obj: DocumentType, done: ObjectCallback) : void
-    update(conditions : Conditions, updates: UpdateFieldCommand[]) : Promise<DocumentType>
-    update(conditions : Conditions, updates: UpdateFieldCommand[], done: ObjectCallback) : void
+    update(_id: DocumentID, _obj_ver: number, updates: UpdateFieldCommand[]) : Promise<DocumentType>
+    update(_id: DocumentID, _obj_ver: number, updates: UpdateFieldCommand[], done: ObjectCallback) : void
     del(_id: DocumentID) : Promise<void>
     del(_id: DocumentID, done: ErrorOnlyCallback) : void
     find(conditions : Conditions, fields?: Fields, sort?: Sort, cursor?: Cursor) : Promise<DocumentType[]> 

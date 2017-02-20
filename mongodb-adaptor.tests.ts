@@ -15,9 +15,9 @@ import tmp                              = require('tmp')
 
 import configure                        = require('@sabbatical/configure-local')
 import {UpdateFieldCommand} from '@sabbatical/document-database'
-import {FieldsUsedInTests, UpdateConfiguration, test_create, test_read, test_replace, test_del, test_update, test_find} from '@sabbatical/document-database/tests'
+import {FieldsUsedInTests, test_create, test_read, test_replace, test_del, test_update, test_find} from '@sabbatical/document-database/tests'
 import {MongoDaemonRunner} from '@sabbatical/mongod-runner'
-import {MongoDBAdaptor, UNSUPPORTED_UPDATE_CMDS} from '@sabbatical/mongodb-adaptor'
+import {MongoDBAdaptor, SUPPORTED_FEATURES} from '@sabbatical/mongodb-adaptor'
 import {SharedConnections} from '@sabbatical/mongoose-connector'
 
 process.on('uncaughtException', function(error) {
@@ -73,6 +73,7 @@ namespace Parts {
 
     export interface Part {
         _id?:                string
+        _obj_ver?:           number
         name:                string
         description?:        string
         catalog_number:      string
@@ -83,6 +84,7 @@ namespace Parts {
 
 
     var PART_SCHEMA_DEF = {
+        _obj_ver:           Number,
         name:               String,
         description:        String,
         catalog_number:     String,
@@ -102,6 +104,7 @@ var fields_used_in_tests: FieldsUsedInTests = {
     populated_string: 'name',
     unpopulated_string: 'description',
     string_array: {name: 'notes'},
+    unique_key_fieldname: 'catalog_number',
     obj_array: {
         name: 'components',
         key_field: 'part_id',
@@ -298,37 +301,32 @@ describe('MongoDBAdaptor', function() {
 
 
     describe('create()', function() {
-         test_create<Part>(getPartsAdaptor, createNewPart, ['name', 'catalog_number'])        
+         test_create<Part>(getPartsAdaptor, createNewPart, fields_used_in_tests)        
     })
 
 
     describe('read()', function() {
-         test_read<Part>(getPartsAdaptor, createNewPart, ['name', 'catalog_number'])        
+         test_read<Part>(getPartsAdaptor, createNewPart, fields_used_in_tests)        
     })
 
 
     describe('replace()', function() {
-         test_replace<Part>(getPartsAdaptor, createNewPart, ['name', 'catalog_number'])        
+         test_replace<Part>(getPartsAdaptor, createNewPart, fields_used_in_tests, SUPPORTED_FEATURES)        
     })
 
 
     describe('update()', function() {
-        var fieldnames: UpdateConfiguration = {
-            test: fields_used_in_tests,
-            unsupported: UNSUPPORTED_UPDATE_CMDS
-        }
-
-        test_update<Part>(getPartsAdaptor, createNewPart, fieldnames)
+        test_update<Part>(getPartsAdaptor, createNewPart, fields_used_in_tests, SUPPORTED_FEATURES)
     })
 
 
     describe('del()', function() {
-         test_del<Part>(getPartsAdaptor, createNewPart, ['name', 'catalog_number'])        
+         test_del<Part>(getPartsAdaptor, createNewPart, fields_used_in_tests)        
     })
 
 
     describe('find()', function() {
-         test_find<Part>(getPartsAdaptor, createNewPart, 'catalog_number')        
+         test_find<Part>(getPartsAdaptor, createNewPart, fields_used_in_tests, SUPPORTED_FEATURES)        
     })
 
 })
