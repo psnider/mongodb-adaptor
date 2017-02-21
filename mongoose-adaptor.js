@@ -24,7 +24,7 @@ exports.SUPPORTED_FEATURES = {
 };
 // This adaptor converts application queries into Mongo queries
 // and the query results into application results, suitable for use by cscFramework
-class MongoDBAdaptor {
+class MongooseDBAdaptor {
     constructor(client_name, mongodb_path, shared_connections, model) {
         this.client_name = client_name;
         this.mongodb_path = mongodb_path;
@@ -40,9 +40,9 @@ class MongoDBAdaptor {
         return (Object.keys(obj).length === 0);
     }
     static convertUpdateCommandToMongo(update) {
-        if (update.cmd in MongoDBAdaptor.CONVERT_COMMAND) {
+        if (update.cmd in MongooseDBAdaptor.CONVERT_COMMAND) {
             // TODO: [remove <any> cast from access to CONVERT_COMMAND](https://github.com/psnider/mongoose-adaptor/issues/2)
-            var mongo_update = MongoDBAdaptor.CONVERT_COMMAND[update.cmd](update);
+            var mongo_update = MongooseDBAdaptor.CONVERT_COMMAND[update.cmd](update);
             return mongo_update;
         }
         else {
@@ -53,7 +53,7 @@ class MongoDBAdaptor {
         var mongo_updates = [];
         for (var i = 0; i < updates.length; ++i) {
             var update = updates[i];
-            var mongo_update = MongoDBAdaptor.convertUpdateCommandToMongo(update);
+            var mongo_update = MongooseDBAdaptor.convertUpdateCommandToMongo(update);
             mongo_updates.push(mongo_update);
         }
         return mongo_updates;
@@ -69,7 +69,7 @@ class MongoDBAdaptor {
             if (Array.isArray(obj)) {
                 obj.forEach((element, i, array) => {
                     if (element) {
-                        array[i] = MongoDBAdaptor.convertMongoIdsToStrings(element);
+                        array[i] = MongooseDBAdaptor.convertMongoIdsToStrings(element);
                     }
                 });
             }
@@ -79,7 +79,7 @@ class MongoDBAdaptor {
             else if (typeof obj === 'object') {
                 Object.keys(obj).forEach((key) => {
                     if (obj[key]) {
-                        obj[key] = MongoDBAdaptor.convertMongoIdsToStrings(obj[key]);
+                        obj[key] = MongooseDBAdaptor.convertMongoIdsToStrings(obj[key]);
                     }
                 });
             }
@@ -143,10 +143,10 @@ class MongoDBAdaptor {
                     let result;
                     if (!error) {
                         let marshalable_doc = saved_doc.toObject();
-                        result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc);
+                        result = MongooseDBAdaptor.convertMongoIdsToStrings(marshalable_doc);
                     }
                     else {
-                        log.error({ function: 'MongoDBAdaptor.create', obj: obj, text: 'db save error', error: error });
+                        log.error({ function: 'MongooseDBAdaptor.create', obj: obj, text: 'db save error', error: error });
                     }
                     done(error, result);
                 });
@@ -185,11 +185,11 @@ class MongoDBAdaptor {
                 mongoose_query.lean().exec().then((result) => {
                     if (Array.isArray(result)) {
                         result.forEach((element) => {
-                            MongoDBAdaptor.convertMongoIdsToStrings(element);
+                            MongooseDBAdaptor.convertMongoIdsToStrings(element);
                         });
                     }
                     else {
-                        MongoDBAdaptor.convertMongoIdsToStrings(result);
+                        MongooseDBAdaptor.convertMongoIdsToStrings(result);
                     }
                     done(undefined, result);
                 }, (error) => {
@@ -229,12 +229,12 @@ class MongoDBAdaptor {
                         this.read(obj._id, done);
                     }
                     else {
-                        log.error({ function: 'MongoDBAdaptor.replace', obj, text: `db replace count=${mongo_result.n}` });
+                        log.error({ function: 'MongooseDBAdaptor.replace', obj, text: `db replace count=${mongo_result.n}` });
                         done(new Error(`db replace count=${mongo_result.n}`));
                     }
                 }
                 else {
-                    log.error({ function: 'MongoDBAdaptor.replace', obj, text: 'db replace error', error });
+                    log.error({ function: 'MongooseDBAdaptor.replace', obj, text: 'db replace error', error });
                     done(error);
                 }
             });
@@ -275,7 +275,7 @@ class MongoDBAdaptor {
             }
             mongoose_query.lean().exec().then((elements) => {
                 elements.forEach((element) => {
-                    MongoDBAdaptor.convertMongoIdsToStrings(element);
+                    MongooseDBAdaptor.convertMongoIdsToStrings(element);
                 });
                 done(undefined, elements);
             }, (error) => {
@@ -308,14 +308,14 @@ class MongoDBAdaptor {
         var chainPromise = (serial_promise, mongo_update, mongoose_query) => {
             return serial_promise.then(() => {
                 return mongoose_query.lean().exec().then((result) => {
-                    MongoDBAdaptor.convertMongoIdsToStrings(result);
+                    MongooseDBAdaptor.convertMongoIdsToStrings(result);
                     return result;
                 });
             });
         };
         if (done) {
             try {
-                var mongo_updates = MongoDBAdaptor.convertUpdateCommandsToMongo(updates);
+                var mongo_updates = MongooseDBAdaptor.convertUpdateCommandsToMongo(updates);
             }
             catch (error) {
                 done(error);
@@ -329,7 +329,7 @@ class MongoDBAdaptor {
                 // TODO: figure out how to do this in one call
                 // apply the updates in the order they were given
                 var initial_value = {};
-                initial_value['MongoDBAdaptor.update.error'] = 'You should never see this!';
+                initial_value['MongooseDBAdaptor.update.error'] = 'You should never see this!';
                 var serial_promise = Promise.resolve(initial_value);
                 let obj_ver_update = { query: {}, update: { $inc: { _obj_ver: 1 } } };
                 mongo_updates.push(obj_ver_update);
@@ -404,7 +404,7 @@ class MongoDBAdaptor {
         });
     }
 }
-MongoDBAdaptor.CONVERT_COMMAND = {
+MongooseDBAdaptor.CONVERT_COMMAND = {
     set: function (update) {
         var mongo_query = {};
         var set_args = {};
@@ -489,4 +489,4 @@ MongoDBAdaptor.CONVERT_COMMAND = {
         return { query: mongo_query, update: { $pull: pull_args } };
     }
 };
-exports.MongoDBAdaptor = MongoDBAdaptor;
+exports.MongooseDBAdaptor = MongooseDBAdaptor;

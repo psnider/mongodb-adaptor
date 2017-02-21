@@ -14,7 +14,7 @@ export interface MongodbUpdateArgs {
 export var SUPPORTED_FEATURES: SupportedFeatures
 
 
-export class MongoDBAdaptor implements DocumentDatabase {
+export class MongooseDBAdaptor implements DocumentDatabase {
     static createObjectId() : string 
     static isEmpty(obj: {}): boolean
     static convertUpdateCommandToMongo(update : UpdateFieldCommand) : MongodbUpdateArgs

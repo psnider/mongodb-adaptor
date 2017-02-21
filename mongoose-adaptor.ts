@@ -39,7 +39,7 @@ export var SUPPORTED_FEATURES: SupportedFeatures = {
 
 // This adaptor converts application queries into Mongo queries
 // and the query results into application results, suitable for use by cscFramework
-export class MongoDBAdaptor implements DocumentDatabase {
+export class MongooseDBAdaptor implements DocumentDatabase {
 
     static  createObjectId() : string {
         var _id = new mongoose.Types.ObjectId
@@ -140,9 +140,9 @@ export class MongoDBAdaptor implements DocumentDatabase {
 
 
     static convertUpdateCommandToMongo(update : UpdateFieldCommand) : MongodbUpdateArgs {
-        if (update.cmd in MongoDBAdaptor.CONVERT_COMMAND) {
+        if (update.cmd in MongooseDBAdaptor.CONVERT_COMMAND) {
             // TODO: [remove <any> cast from access to CONVERT_COMMAND](https://github.com/psnider/mongoose-adaptor/issues/2)
-            var mongo_update = (<any>MongoDBAdaptor.CONVERT_COMMAND)[update.cmd](update)
+            var mongo_update = (<any>MongooseDBAdaptor.CONVERT_COMMAND)[update.cmd](update)
             return mongo_update
         } else {
             throw new Error('unexpected update.cmd=' + update.cmd + ' field=' + update.field)
@@ -154,7 +154,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
         var mongo_updates: MongodbUpdateArgs[] = []
         for (var i = 0 ; i < updates.length ; ++i) {
             var update = updates[i]
-            var mongo_update = MongoDBAdaptor.convertUpdateCommandToMongo(update)
+            var mongo_update = MongooseDBAdaptor.convertUpdateCommandToMongo(update)
             mongo_updates.push(mongo_update)
         }
         return mongo_updates
@@ -174,7 +174,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
             if (Array.isArray(obj)) {
                 obj.forEach((element, i, array) => {
                     if (element) {
-                        array[i] = MongoDBAdaptor.convertMongoIdsToStrings(element)
+                        array[i] = MongooseDBAdaptor.convertMongoIdsToStrings(element)
                     }
                 })
             } else if (obj instanceof mongoose.Types.ObjectId) {
@@ -182,7 +182,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
             } else if (typeof obj === 'object') {
                 Object.keys(obj).forEach((key) => {
                     if (obj[key]) {
-                        obj[key] = MongoDBAdaptor.convertMongoIdsToStrings(obj[key])
+                        obj[key] = MongooseDBAdaptor.convertMongoIdsToStrings(obj[key])
                     }
                 })
             }
@@ -262,9 +262,9 @@ export class MongoDBAdaptor implements DocumentDatabase {
                     let result: DocumentType
                     if (!error) {
                         let marshalable_doc: DocumentType = <DocumentType>saved_doc.toObject()
-                        result = MongoDBAdaptor.convertMongoIdsToStrings(marshalable_doc)
+                        result = MongooseDBAdaptor.convertMongoIdsToStrings(marshalable_doc)
                     } else {
-                        log.error({function: 'MongoDBAdaptor.create', obj: obj, text: 'db save error', error: error})
+                        log.error({function: 'MongooseDBAdaptor.create', obj: obj, text: 'db save error', error: error})
                     }
                     done(error, result)
                 })
@@ -309,10 +309,10 @@ export class MongoDBAdaptor implements DocumentDatabase {
                     (result: DocumentType | DocumentType[]) => {
                         if (Array.isArray(result)) {
                             result.forEach((element) => {
-                                MongoDBAdaptor.convertMongoIdsToStrings(element)
+                                MongooseDBAdaptor.convertMongoIdsToStrings(element)
                             })
                         } else {
-                            MongoDBAdaptor.convertMongoIdsToStrings(result)
+                            MongooseDBAdaptor.convertMongoIdsToStrings(result)
                         }
                         done(undefined, result)
                     },
@@ -360,11 +360,11 @@ export class MongoDBAdaptor implements DocumentDatabase {
                     if (mongo_result.n === 1) {
                         this.read( obj._id, done)
                     } else {
-                        log.error({function: 'MongoDBAdaptor.replace', obj, text: `db replace count=${mongo_result.n}`})
+                        log.error({function: 'MongooseDBAdaptor.replace', obj, text: `db replace count=${mongo_result.n}`})
                         done(new Error(`db replace count=${mongo_result.n}`))
                     }
                 } else {
-                    log.error({function: 'MongoDBAdaptor.replace', obj, text: 'db replace error', error})
+                    log.error({function: 'MongooseDBAdaptor.replace', obj, text: 'db replace error', error})
                     done(error)
                 }
             })
@@ -407,7 +407,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
             mongoose_query.lean().exec().then(
                 (elements: DocumentType[]) => {
                     elements.forEach((element) => {
-                        MongoDBAdaptor.convertMongoIdsToStrings(element)
+                        MongooseDBAdaptor.convertMongoIdsToStrings(element)
                     })
                     done(undefined, elements)
                 },
@@ -451,7 +451,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
             return serial_promise.then(() => {
                 return mongoose_query.lean().exec().then(
                     (result) => {
-                        MongoDBAdaptor.convertMongoIdsToStrings(result)
+                        MongooseDBAdaptor.convertMongoIdsToStrings(result)
                         return result
                     }
                 )
@@ -459,7 +459,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
         }
         if (done) {
             try {
-                var mongo_updates = MongoDBAdaptor.convertUpdateCommandsToMongo(updates)
+                var mongo_updates = MongooseDBAdaptor.convertUpdateCommandsToMongo(updates)
             } catch (error) {
                 done(error)
                 return                
@@ -471,7 +471,7 @@ export class MongoDBAdaptor implements DocumentDatabase {
                 // TODO: figure out how to do this in one call
                 // apply the updates in the order they were given
                 var initial_value : mongoose.Document = <mongoose.Document>{}
-                ;(<any>initial_value)['MongoDBAdaptor.update.error'] = 'You should never see this!'
+                ;(<any>initial_value)['MongooseDBAdaptor.update.error'] = 'You should never see this!'
                 var serial_promise = Promise.resolve(initial_value)
                 let obj_ver_update = {query: {}, update: {$inc: {_obj_ver: 1}}}
                 mongo_updates.push(obj_ver_update)

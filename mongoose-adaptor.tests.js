@@ -65,14 +65,14 @@ function createNewPart() {
 }
 function createNewPartComponent() {
     return {
-        part_id: mongoose_adaptor_1.MongoDBAdaptor.createObjectId(),
+        part_id: mongoose_adaptor_1.MongooseDBAdaptor.createObjectId(),
         info: {
             quantity: (next_part_number % 2),
             style: ((next_part_number % 2) == 0) ? 'old' : 'new'
         }
     };
 }
-describe('MongoDBAdaptor', function () {
+describe('MongooseDBAdaptor', function () {
     var PORT = 27016; // one less than the default port
     var NOTE = 'dont use with anti-widgets!';
     var UPDATED_NOTE = 'It actually works with anti-widgets!';
@@ -92,7 +92,7 @@ describe('MongoDBAdaptor', function () {
                 shared_connections = new mongoose_connector_1.SharedConnections(log);
                 // TODO: [mongoose-adaptor.tests.ts should use config for mongo_path](https://github.com/psnider/mongoose-adaptor/issues/4)
                 var mongodb_path = `localhost:${PORT}/test`;
-                PARTS_ADAPTOR = new mongoose_adaptor_1.MongoDBAdaptor('mongoose-adaptor-test', mongodb_path, shared_connections, Parts.Model);
+                PARTS_ADAPTOR = new mongoose_adaptor_1.MongooseDBAdaptor('mongoose-adaptor-test', mongodb_path, shared_connections, Parts.Model);
                 PARTS_ADAPTOR.connect((error) => {
                     done(error);
                 });
@@ -168,7 +168,7 @@ describe('MongoDBAdaptor', function () {
             }
         };
         function test_convertUpdateCommandToMongo(test_desc) {
-            var mongo_update = mongoose_adaptor_1.MongoDBAdaptor.convertUpdateCommandToMongo(test_desc.update_cmd);
+            var mongo_update = mongoose_adaptor_1.MongooseDBAdaptor.convertUpdateCommandToMongo(test_desc.update_cmd);
             expect(mongo_update.query).to.deep.equal(test_desc.expected_mongo_query);
             //expect(mongo_update.update).to.deep.equal(test_desc.expected_mongo_update)
         }

@@ -17,7 +17,7 @@ import configure                        = require('@sabbatical/configure-local')
 import {UpdateFieldCommand} from '@sabbatical/document-database'
 import {FieldsUsedInTests, test_create, test_read, test_replace, test_del, test_update, test_find} from '@sabbatical/document-database/tests'
 import {MongoDaemonRunner} from '@sabbatical/mongod-runner'
-import {MongoDBAdaptor, SUPPORTED_FEATURES} from '@sabbatical/mongoose-adaptor'
+import {MongooseDBAdaptor, SUPPORTED_FEATURES} from '@sabbatical/mongoose-adaptor'
 import {SharedConnections} from '@sabbatical/mongoose-connector'
 
 process.on('uncaughtException', function(error) {
@@ -127,7 +127,7 @@ function createNewPart(): Part {
 }
 function createNewPartComponent(): Parts.Component {
     return {
-        part_id: MongoDBAdaptor.createObjectId(),
+        part_id: MongooseDBAdaptor.createObjectId(),
         info: {
             quantity: (next_part_number % 2),
             style:    ((next_part_number % 2) == 0) ? 'old' : 'new'
@@ -136,7 +136,7 @@ function createNewPartComponent(): Parts.Component {
 }
 
 
-describe('MongoDBAdaptor', function() {
+describe('MongooseDBAdaptor', function() {
 
     var PORT = 27016  // one less than the default port
 
@@ -151,9 +151,9 @@ describe('MongoDBAdaptor', function() {
     var mongo_daemon: MongoDaemonRunner
     var shared_connections: SharedConnections
 
-    var PARTS_ADAPTOR: MongoDBAdaptor
+    var PARTS_ADAPTOR: MongooseDBAdaptor
 
-    function getPartsAdaptor(): MongoDBAdaptor  {return PARTS_ADAPTOR}
+    function getPartsAdaptor(): MongooseDBAdaptor  {return PARTS_ADAPTOR}
 
     before(function(done) {
         mongo_daemon = new MongoDaemonRunner({port: PORT, use_tmp_dir: true, disable_logging: true})
@@ -162,7 +162,7 @@ describe('MongoDBAdaptor', function() {
                 shared_connections = new SharedConnections(log)
                 // TODO: [mongoose-adaptor.tests.ts should use config for mongo_path](https://github.com/psnider/mongoose-adaptor/issues/4)
                 var mongodb_path = `localhost:${PORT}/test`
-                PARTS_ADAPTOR = new MongoDBAdaptor('mongoose-adaptor-test', mongodb_path, shared_connections, Parts.Model)
+                PARTS_ADAPTOR = new MongooseDBAdaptor('mongoose-adaptor-test', mongodb_path, shared_connections, Parts.Model)
 
                 PARTS_ADAPTOR.connect((error) => {
                     done(error)
@@ -247,7 +247,7 @@ describe('MongoDBAdaptor', function() {
 
 
         function test_convertUpdateCommandToMongo(test_desc : ConvertMongodbUpdateArgsTest) {
-            var mongo_update = MongoDBAdaptor.convertUpdateCommandToMongo(test_desc.update_cmd)
+            var mongo_update = MongooseDBAdaptor.convertUpdateCommandToMongo(test_desc.update_cmd)
             expect(mongo_update.query).to.deep.equal(test_desc.expected_mongo_query)
             //expect(mongo_update.update).to.deep.equal(test_desc.expected_mongo_update)
         }

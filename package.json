@@ -1,6 +1,6 @@
 {
   "name": "@sabbatical/mongoose-adaptor",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "A database adaptor for using MongoDB with mongoose.js.",
   "main": "./mongoose-adaptor.js",
   "keywords": [],
