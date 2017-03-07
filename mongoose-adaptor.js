@@ -1,8 +1,9 @@
 "use strict";
-const mongoose = require('mongoose');
+Object.defineProperty(exports, "__esModule", { value: true });
+const mongoose = require("mongoose");
 // Use native promises
 mongoose.Promise = global.Promise;
-const pino = require('pino');
+const pino = require("pino");
 var log = pino({ name: 'mongoose-adaptor' });
 exports.SUPPORTED_FEATURES = {
     replace: true,

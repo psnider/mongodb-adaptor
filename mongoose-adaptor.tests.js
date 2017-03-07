@@ -2,15 +2,16 @@
 // as the Promise code wraps the callback versions,
 // and this way both types are tested.
 "use strict";
-const chai = require('chai');
+Object.defineProperty(exports, "__esModule", { value: true });
+const chai = require("chai");
 var expect = chai.expect;
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 var ObjectId = mongoose.Schema.Types.ObjectId;
-const pino = require('pino');
-const tests_1 = require('@sabbatical/document-database/tests');
-const mongod_runner_1 = require('@sabbatical/mongod-runner');
-const mongoose_adaptor_1 = require('@sabbatical/mongoose-adaptor');
-const mongoose_connector_1 = require('@sabbatical/mongoose-connector');
+const pino = require("pino");
+const tests_1 = require("@sabbatical/document-database/tests");
+const mongod_runner_1 = require("@sabbatical/mongod-runner");
+const mongoose_adaptor_1 = require("@sabbatical/mongoose-adaptor");
+const mongoose_connector_1 = require("@sabbatical/mongoose-connector");
 process.on('uncaughtException', function (error) {
     console.log('Found uncaughtException: ' + error);
 });
